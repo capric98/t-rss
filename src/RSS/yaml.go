@@ -74,6 +74,8 @@ func ParseSettings(data []byte) []TaskType {
 			case "client":
 				T[n].Client = ParseClientSettings(v.(map[interface{}]interface{}))
 			case "regexp":
+				// We'd better check the validity of regexps after...
+
 				if tmp := v.(map[interface{}]interface{})["acceptFilter"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
 						T[n].AccRegexp = append(T[n].AccRegexp, r.(string))
