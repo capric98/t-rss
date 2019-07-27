@@ -1,50 +1,98 @@
 package RSS
 
 import (
-	"fmt"
 	"html"
 	"log"
 	"net/http"
-	"os"
-	"time"
+	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/mmcdole/gofeed"
 )
 
-func RssFetch(url string, client *http.Client) {
+type RssRespType struct {
+	Title       string
+	Description string
+	Author      string
+	Categories  []string
+	DURL        string
+	Length      int //this is total length...
+	Date        string
+	GUID        string
+}
+
+func RssFetch(url string, client *http.Client) ([]RssRespType, error) {
 
 	resp, err := client.Get(url)
 	if err != nil {
-		log.Fatalf("Failed to get rss meta: %v", err)
-		return
+		log.Printf("Caution: Failed to get rss meta: %v\n", err)
+		return nil, err
 	}
-	// bodyData, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	log.Fatalf("Failed to read rss resp body: %v", err)
-	// 	return
-	// }
-	// //fmt.Println(string(bodyData))
-	// ioutil.WriteFile("resp.conf", bodyData, 0666)
+	defer resp.Body.Close()
 
 	fp := gofeed.NewParser()
 	rssFeed, _ := fp.Parse(resp.Body)
-	file, _ := os.OpenFile("resp.conf", os.O_CREATE|os.O_WRONLY, 0644)
-	for _, v := range rssFeed.Items {
-		fmt.Println("==========================================================")
-		fmt.Println(v.Title)
-		//fmt.Println(v.Description)
-		file.WriteString(html.UnescapeString(v.Description))
-		fmt.Println(v.Author)
-		fmt.Println(v.Categories)
-		fmt.Println(v.Enclosures[0].URL)
-		fmt.Println(v.Published)
+	Rresp := make([]RssRespType, len(rssFeed.Items))
+	for i, v := range rssFeed.Items {
+		tmp, err := strconv.Atoi(v.Enclosures[0].Length)
+		if err != nil {
+			tmp = 0
+		}
+		Rresp[i] = RssRespType{
+			Title:       v.Title,
+			Description: html.UnescapeString(v.Description),
+			Author:      v.Author.Name,
+			Categories:  v.Categories,
+			DURL:        v.Enclosures[0].URL,
+			Length:      tmp,
+			Date:        v.Published,
+			GUID:        v.GUID,
+		}
 	}
-	file.Close()
+	return Rresp, nil
 }
 
-func RssRun(task TaskType) {
-	client := http.Client{
-		Timeout: time.Duration(10 * time.Second),
+func NameRegularize(name string) string {
+	name = strings.ReplaceAll(name, ":", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, "*", "_")
+	name = strings.ReplaceAll(name, "?", "_")
+	name = strings.ReplaceAll(name, "\"", "_")
+	name = strings.ReplaceAll(name, "<", "_")
+	name = strings.ReplaceAll(name, ">", "_")
+	name = strings.ReplaceAll(name, "|", "_")
+	if len(name) > 255 {
+		name = name[:255]
 	}
-	RssFetch(task.RSS_Link, &client)
+	return name
+}
+
+func GetFileInfo(furl string, headermap http.Header) string {
+	var urlname, headername = "", ""
+	for p := len(furl) - 1; furl[p] != '/'; p-- {
+		urlname = string(furl[p]) + urlname
+	}
+	if urlname == "" {
+		urlname = "download" // In case of a blank name.
+	}
+	if headermap["Content-Disposition"] != nil {
+		headername = headermap["Content-Disposition"][0]
+		headername = headername[strings.Index(headername, "filename=")+9 : len(headername)]
+		for headername[0] == ' ' || headername[0] == '"' {
+			headername = headername[1:]
+		}
+		if strings.Index(headername, ";") != -1 {
+			headername = headername[:strings.Index(headername, ";")]
+		}
+		for headername[len(headername)-1] == ' ' || headername[len(headername)-1] == '"' {
+			headername = headername[:len(headername)-1]
+		}
+	}
+	if headername == "" {
+		headername = urlname // In case of a blank name.
+	}
+
+	rh, _ := url.QueryUnescape(headername)
+	return rh
 }
