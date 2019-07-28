@@ -70,14 +70,16 @@ func SaveItem(r RssRespType, t TaskType) {
 		for _, v := range t.Client {
 			switch v.Name {
 			case "qBittorrent":
-				err = v.Client.(client.QBType).Add(body)
+				err = v.Client.(client.QBType).Add(body, GetFileInfo(r.DURL, resp.Header))
 			case "Deluge":
 				//err= v.Client.(client.DeType).Add(body)
 			}
 			if err != nil {
-				log.Printf("%s: Failed to add item \"%s\" to %s client.\n", t.TaskName, r.Title, v.Name)
+				log.Printf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err)
 			}
 		}
+	} else {
+		fmt.Println("nil client list!")
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
 	return
