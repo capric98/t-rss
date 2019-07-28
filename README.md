@@ -4,3 +4,5 @@
 
 [go-yaml](https://github.com/go-yaml/yaml)
 
+[color](https://github.com/fatih/color)
+

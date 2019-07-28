@@ -10,20 +10,24 @@ import (
 	"regexp"
 	"runtime"
 	"time"
+
+	"github.com/fatih/color"
 )
 
-func CheckRegexp(v RssRespType, reg []string) bool {
+//color.New(color.FgYellow).SprintFunc()
+//color.New(color.FgRed).SprintFunc()
+var cGreen = color.New(color.FgWhite, color.BgGreen).SprintFunc()
+
+func CheckRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	for _, r := range reg {
-		matched, _ := regexp.MatchString(r, v.Title)
-		if matched {
+		if r.MatchString(v.Title) {
 			return true
 		}
-		matched, _ = regexp.MatchString(r, v.Description)
-		if matched {
-			return true
-		}
-		matched, _ = regexp.MatchString(r, v.Author)
-		if matched {
+		// matched, _ = regexp.MatchString(r, v.Description)
+		// if matched {
+		// 	return true
+		// }
+		if r.MatchString(v.Author) {
 			return true
 		}
 	}
@@ -87,7 +91,7 @@ func RunTask(t TaskType) {
 			go SaveItem(v, t)
 		}
 
-		log.Printf("Task %s executed once in %s.\n", t.TaskName, time.Since(startT))
+		log.Printf("Task %s executed once in %s.\n", t.TaskName, cGreen(time.Since(startT)))
 		log.Printf("Sleep %d seconds.\n", t.Interval)
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}

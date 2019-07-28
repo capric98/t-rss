@@ -3,6 +3,7 @@ package RSS
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"gopkg.in/yaml.v2"
 )
@@ -26,8 +27,8 @@ type TaskType struct {
 	MaxSize   int
 	MinSize   int
 	Strict    bool
-	AccRegexp []string
-	RjcRegexp []string
+	AccRegexp []*regexp.Regexp
+	RjcRegexp []*regexp.Regexp
 }
 
 func ParseClientSettings(s map[interface{}]interface{}) ClientType {
@@ -78,12 +79,20 @@ func ParseSettings(data []byte) []TaskType {
 
 				if tmp := v.(map[interface{}]interface{})["acceptFilter"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
-						T[n].AccRegexp = append(T[n].AccRegexp, r.(string))
+						re, err := regexp.Compile(r.(string))
+						if err != nil {
+							log.Fatalf("Panic: %v\n", err)
+						}
+						T[n].AccRegexp = append(T[n].AccRegexp, re)
 					}
 				}
 				if tmp := v.(map[interface{}]interface{})["rejectFilter"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
-						T[n].RjcRegexp = append(T[n].RjcRegexp, r.(string))
+						re, err := regexp.Compile(r.(string))
+						if err != nil {
+							log.Fatalf("Panic: %v\n", err)
+						}
+						T[n].RjcRegexp = append(T[n].RjcRegexp, re)
 					}
 				}
 			case "content_size":
@@ -95,6 +104,8 @@ func ParseSettings(data []byte) []TaskType {
 				}
 			case "strict":
 				T[n].Strict = v.(bool)
+			case "interval":
+				T[n].Interval = v.(int)
 			default:
 				log.Printf("Caution: Unknown config path: %s\n", k.(string))
 			}
