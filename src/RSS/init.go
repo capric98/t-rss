@@ -58,11 +58,11 @@ func SaveItem(r RssRespType, t TaskType) {
 	}
 
 	if t.DownPath != "" {
-		err := ioutil.WriteFile(t.DownPath+GetFileInfo(r.DURL, resp.Header), body, 0644)
+		err := ioutil.WriteFile(t.DownPath+"/"+GetFileInfo(r.DURL, resp.Header), body, 0644)
 		if err != nil {
 			log.Printf("Warning: %v\n", err)
 		}
-		log.Printf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header))
+		//log.Printf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header))
 	}
 
 	// Add file to client.
@@ -78,8 +78,6 @@ func SaveItem(r RssRespType, t TaskType) {
 				log.Printf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err)
 			}
 		}
-	} else {
-		fmt.Println("nil client list!")
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
 	return
@@ -112,6 +110,18 @@ func RunTask(t TaskType) {
 		ac_count := 0
 		rj_count := 0
 		for _, v := range Rresp {
+			// Check if item had been accepted yet.
+			if v.GUID == "" {
+				v.GUID = NameRegularize(v.Title)
+			} else {
+				v.GUID = NameRegularize(v.GUID)
+			} // Just in case.
+			if _, err := os.Stat(".RSS-saved/" + v.GUID); !os.IsNotExist(err) {
+				rj_count++
+				continue
+			}
+			os.Create(".RSS-saved/" + v.GUID)
+
 			// Check regexp filter.
 			if (t.RjcRegexp != nil) && (CheckRegexp(v, t.RjcRegexp)) {
 				log.Printf("%s: Reject item \"%s\"\n", t.TaskName, v.Title)
@@ -126,23 +136,15 @@ func RunTask(t TaskType) {
 
 			// Check content_size.
 			if (v.Length == 0 && !t.Strict) || (v.Length < t.MaxSize && v.Length > t.MinSize) {
+			} else {
 				log.Printf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title)
-				rj_count++
-				continue
-			}
-
-			// Check if item had been accepted yet.
-			if v.GUID == "" {
-				v.GUID = NameRegularize(v.Title)
-			} // Just in case.
-			if _, err := os.Stat(".RSS-saved\\" + v.GUID); !os.IsNotExist(err) {
 				rj_count++
 				continue
 			}
 
 			log.Printf("%s: Accept item \"%s\"\n", t.TaskName, v.Title)
 			ac_count++
-			os.Create(".RSS-saved\\" + v.GUID)
+
 			go SaveItem(v, t)
 		}
 

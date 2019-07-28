@@ -22,9 +22,8 @@ type RssRespType struct {
 	GUID        string
 }
 
-func RssFetch(url string, client *http.Client) ([]RssRespType, error) {
-
-	resp, err := client.Get(url)
+func RssFetch(rurl string, client *http.Client) ([]RssRespType, error) {
+	resp, err := client.Get(rurl)
 	if err != nil {
 		log.Printf("Caution: Failed to get rss meta: %v\n", err)
 		return nil, err
@@ -42,12 +41,15 @@ func RssFetch(url string, client *http.Client) ([]RssRespType, error) {
 		Rresp[i] = RssRespType{
 			Title:       v.Title,
 			Description: html.UnescapeString(v.Description),
-			Author:      v.Author.Name,
-			Categories:  v.Categories,
-			DURL:        v.Enclosures[0].URL,
-			Length:      tmp,
-			Date:        v.Published,
-			GUID:        v.GUID,
+			//Author:      v.Author.Name,
+			//Categories:  v.Categories,
+			DURL:   v.Enclosures[0].URL,
+			Length: tmp,
+			Date:   v.Published,
+			GUID:   v.GUID,
+		}
+		if v.Author != nil {
+			Rresp[i].Author = v.Author.Name
 		}
 	}
 	return Rresp, nil
@@ -56,6 +58,7 @@ func RssFetch(url string, client *http.Client) ([]RssRespType, error) {
 func NameRegularize(name string) string {
 	name = strings.ReplaceAll(name, ":", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "*", "_")
 	name = strings.ReplaceAll(name, "?", "_")
 	name = strings.ReplaceAll(name, "\"", "_")

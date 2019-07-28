@@ -2,7 +2,6 @@ package RSS
 
 import (
 	"client"
-	"fmt"
 	"log"
 	"regexp"
 
@@ -112,7 +111,6 @@ func ParseSettings(data []byte) []TaskType {
 				log.Printf("Caution: Unknown config path: %s\n", k.(string))
 			}
 		}
-		fmt.Println(T[n])
 		n++
 	}
 
