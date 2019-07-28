@@ -1,6 +1,7 @@
 package RSS
 
 import (
+	"client"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"regexp"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -16,7 +18,11 @@ import (
 
 //color.New(color.FgYellow).SprintFunc()
 //color.New(color.FgRed).SprintFunc()
-var cGreen = color.New(color.FgWhite, color.BgGreen).SprintFunc()
+var (
+	cGreen = color.New(color.FgWhite, color.BgGreen)
+	cRed   = color.New(color.FgHiWhite, color.BgRed)
+	oLock  = sync.Mutex{}
+)
 
 func CheckRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	for _, r := range reg {
@@ -38,6 +44,8 @@ func SaveItem(r RssRespType, t TaskType) {
 	nClient := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
+	startT := time.Now()
+
 	resp, err := nClient.Get(r.DURL)
 	if err != nil {
 		log.Printf("%v\n", err)
@@ -58,7 +66,32 @@ func SaveItem(r RssRespType, t TaskType) {
 	}
 
 	// Add file to client.
+	if t.Client != nil {
+		for _, v := range t.Client {
+			switch v.Name {
+			case "qBittorrent":
+				err = v.Client.(client.QBType).Add(body)
+			case "Deluge":
+				//err= v.Client.(client.DeType).Add(body)
+			}
+			if err != nil {
+				log.Printf("%s: Failed to add item \"%s\" to %s client.\n", t.TaskName, r.Title, v.Name)
+			}
+		}
+	}
+	PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
 	return
+}
+
+func PrintTimeInfo(info string, t time.Duration) {
+	oLock.Lock()
+	fmt.Fprintf(os.Stderr, time.Now().Format("2006/01/02 15:04:05 "))
+	fmt.Fprintf(os.Stderr, info)
+	color.Set(color.FgWhite, color.BgGreen)
+	fmt.Fprintf(os.Stderr, "%s", t)
+	color.Unset()
+	fmt.Fprintf(os.Stderr, ".\n")
+	oLock.Unlock()
 }
 
 func RunTask(t TaskType) {
@@ -74,24 +107,45 @@ func RunTask(t TaskType) {
 			log.Printf("Caution: Task %s failed to get RSS response and raised an error: %v.\n", t.TaskName, err)
 			continue
 		}
+		ac_count := 0
+		rj_count := 0
 		for _, v := range Rresp {
+			// Check regexp filter.
 			if (t.RjcRegexp != nil) && (CheckRegexp(v, t.RjcRegexp)) {
 				log.Printf("%s: Reject item \"%s\"\n", t.TaskName, v.Title)
+				rj_count++
 				continue
 			}
 			if t.AccRegexp != nil && (!CheckRegexp(v, t.RjcRegexp)) && (t.Strict) {
 				log.Printf("%s: Cannot accept item \"%s\" due to strict mode.\n", t.TaskName, v.Title)
+				rj_count++
 				continue
 			}
 
-			// Check content_size here!!!
-			// Check history here!!!!
+			// Check content_size.
+			if (v.Length == 0 && !t.Strict) || (v.Length < t.MaxSize && v.Length > t.MinSize) {
+				log.Printf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title)
+				rj_count++
+				continue
+			}
+
+			// Check if item had been accepted yet.
+			if v.GUID == "" {
+				v.GUID = NameRegularize(v.Title)
+			} // Just in case.
+			if _, err := os.Stat(".RSS-saved\\" + v.GUID); !os.IsNotExist(err) {
+				rj_count++
+				continue
+			}
 
 			log.Printf("%s: Accept item \"%s\"\n", t.TaskName, v.Title)
+			ac_count++
+			os.Create(".RSS-saved\\" + v.GUID)
 			go SaveItem(v, t)
 		}
 
-		log.Printf("Task %s executed once in %s.\n", t.TaskName, cGreen(time.Since(startT)))
+		//log.Printf("Accept %d item(s), reject %d item(s). Task %q costs %q.\n", ac_count, rj_count, cRed.Sprintf(t.TaskName), cGreen.Sprintf("%s", time.Since(startT)))
+		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", ac_count, rj_count, t.TaskName), time.Since(startT))
 		log.Printf("Sleep %d seconds.\n", t.Interval)
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
@@ -103,6 +157,10 @@ func Init(conf string) {
 	cdata, err := ioutil.ReadFile(conf)
 	if err != nil {
 		log.Fatalf("Error: %v\n", err)
+	}
+	if _, err := os.Stat(".RSS-saved"); os.IsNotExist(err) {
+		os.Mkdir(".RSS-saved", 0644)
+		log.Println(".RSS-saved dir did not exist, make it!")
 	}
 	taskList := ParseSettings(cdata)
 

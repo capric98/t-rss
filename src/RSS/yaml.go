@@ -1,6 +1,7 @@
 package RSS
 
 import (
+	"client"
 	"fmt"
 	"log"
 	"regexp"
@@ -8,13 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ClientType struct {
-	Name     string
-	Host     string
-	Port     int
-	UserName string
-	Password string
-}
+type ClientType = client.ClientType
 
 type TaskType struct {
 	TaskName  string
@@ -22,7 +17,7 @@ type TaskType struct {
 	Interval  int
 	ExeAtTime []int
 	DownPath  string
-	Client    ClientType
+	Client    []ClientType
 	Cookie    string
 	MaxSize   int
 	MinSize   int
@@ -31,12 +26,17 @@ type TaskType struct {
 	RjcRegexp []*regexp.Regexp
 }
 
-func ParseClientSettings(s map[interface{}]interface{}) ClientType {
-	var ps ClientType
-	ps.Name = s["name"].(string)
-	ps.Host = s["host"].(string)
-	ps.UserName = s["user"].(string)
-	ps.Password = s["pass"].(string)
+func ParseClientSettings(s map[interface{}]interface{}) []ClientType {
+	ps := make([]ClientType, 0)
+	for k, v := range s {
+		switch k.(string) {
+		case "qBittorrent":
+			ps = append(ps, client.NewqBclient(v.(map[interface{}]interface{})))
+		case "Deluge":
+			ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
+		default:
+		}
+	}
 	return ps
 }
 
@@ -66,6 +66,8 @@ func ParseSettings(data []byte) []TaskType {
 	//fmt.Printf("--- m:\n%v\n", m)
 	for tname, task := range m {
 		T[n].TaskName = tname.(string)
+		T[n].MinSize = -1
+		T[n].MaxSize = 0x7FFFFFFF // 2000TiB+
 		for k, v := range task.(map[interface{}]interface{}) {
 			switch k.(string) {
 			case "rss":
