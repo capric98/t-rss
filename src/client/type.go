@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -9,6 +10,10 @@ import (
 type ClientType struct {
 	Name   string
 	Client interface{}
+}
+
+func SpeedToInt(s string) (int, error) {
+	return strconv.Atoi(speedParse(s))
 }
 
 func speedParse(s string) string {
