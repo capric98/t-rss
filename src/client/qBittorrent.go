@@ -39,6 +39,9 @@ func NewqBclient(m map[interface{}]interface{}) ClientType {
 		nc.Client.(QBType).settings[k.(string)] = v.(string)
 	} // Copy settings.
 
+	nc.Client.(QBType).settings["dlLimit"] = speedParse(nc.Client.(QBType).settings["dlLimit"])
+	nc.Client.(QBType).settings["upLimit"] = speedParse(nc.Client.(QBType).settings["upLimit"])
+
 	fcount := 1
 	err := nc.Client.(QBType).Init()
 	for err != nil {
@@ -88,7 +91,6 @@ func (c QBType) Add(data []byte, filename string) error {
 	}
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	ioutil.WriteFile("resp.conf", []byte(fmt.Sprint(req)), 0644)
 
 	resp, err := c.client.Do(req)
 	if err != nil {

@@ -146,9 +146,7 @@ func RunTask(t TaskType) {
 			go SaveItem(v, t)
 		}
 
-		//log.Printf("Accept %d item(s), reject %d item(s). Task %q costs %q.\n", ac_count, rj_count, cRed.Sprintf(t.TaskName), cGreen.Sprintf("%s", time.Since(startT)))
 		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", ac_count, rj_count, t.TaskName), time.Since(startT))
-		log.Printf("Sleep %d seconds.\n", t.Interval)
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
 }
