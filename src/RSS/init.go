@@ -128,7 +128,7 @@ func RunTask(t TaskType) {
 				rj_count++
 				continue
 			}
-			if t.AccRegexp != nil && (!CheckRegexp(v, t.RjcRegexp)) && (t.Strict) {
+			if t.AccRegexp != nil && (!CheckRegexp(v, t.AccRegexp)) && (t.Strict) {
 				log.Printf("%s: Cannot accept item \"%s\" due to strict mode.\n", t.TaskName, v.Title)
 				rj_count++
 				continue
