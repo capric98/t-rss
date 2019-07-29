@@ -17,7 +17,7 @@ type RssRespType struct {
 	Author      string
 	Categories  []string
 	DURL        string
-	Length      int //this is total length...
+	Length      int64 //this is total length...
 	Date        string
 	GUID        string
 }
@@ -44,7 +44,7 @@ func RssFetch(rurl string, client *http.Client) ([]RssRespType, error) {
 			//Author:      v.Author.Name,
 			//Categories:  v.Categories,
 			DURL:   v.Enclosures[0].URL,
-			Length: tmp,
+			Length: int64(tmp),
 			Date:   v.Published,
 			GUID:   v.GUID,
 		}

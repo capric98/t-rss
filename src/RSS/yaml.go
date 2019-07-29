@@ -18,8 +18,8 @@ type TaskType struct {
 	DownPath  string
 	Client    []ClientType
 	Cookie    string
-	MaxSize   int
-	MinSize   int
+	MaxSize   int64
+	MinSize   int64
 	Strict    bool
 	AccRegexp []*regexp.Regexp
 	RjcRegexp []*regexp.Regexp
@@ -66,7 +66,7 @@ func ParseSettings(data []byte) []TaskType {
 	for tname, task := range m {
 		T[n].TaskName = tname.(string)
 		T[n].MinSize = -1
-		T[n].MaxSize = 0x7FFFFFFF // 2000TiB+
+		T[n].MaxSize, _ = client.SpeedToInt("2000TB") // 2000TiB+
 		for k, v := range task.(map[interface{}]interface{}) {
 			switch k.(string) {
 			case "rss":
@@ -100,7 +100,7 @@ func ParseSettings(data []byte) []TaskType {
 				if tmp := v.(map[interface{}]interface{})["max"]; tmp != nil {
 					switch tmp.(type) {
 					case int:
-						T[n].MaxSize = tmp.(int) * 1024
+						T[n].MaxSize = int64(tmp.(int)) * 1024
 					case string:
 						T[n].MaxSize, _ = client.SpeedToInt(tmp.(string))
 					}
@@ -109,7 +109,7 @@ func ParseSettings(data []byte) []TaskType {
 				if tmp := v.(map[interface{}]interface{})["min"]; tmp != nil {
 					switch tmp.(type) {
 					case int:
-						T[n].MinSize = tmp.(int) * 1024
+						T[n].MinSize = int64(tmp.(int)) * 1024
 					case string:
 						T[n].MinSize, _ = client.SpeedToInt(tmp.(string))
 					}
@@ -122,6 +122,7 @@ func ParseSettings(data []byte) []TaskType {
 				log.Printf("Caution: Unknown config path: %s\n", k.(string))
 			}
 		}
+		//fmt.Println(T[n].MinSize, T[n].MaxSize)
 		n++
 	}
 
