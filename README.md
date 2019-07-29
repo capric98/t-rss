@@ -1,5 +1,6 @@
-## RSS
-### Build
+## GoRSS
+[中文文档](README-zh_CN.md)
+### Build (Seems not to work yet...)
 ```
 go get gopkg.in/yaml.v2 github.com/mmcdole/gofeed github.com/fatih/color
 go build
