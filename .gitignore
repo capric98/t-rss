@@ -16,3 +16,4 @@
 *.conf
 .RSS-saved/*
 pkg/*
+.vscode/*

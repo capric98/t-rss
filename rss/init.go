@@ -1,7 +1,6 @@
 package RSS
 
 import (
-	"client"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DeveloperHZH/GoRSS/client"
 	"github.com/fatih/color"
 )
 

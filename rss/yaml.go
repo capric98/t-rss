@@ -1,10 +1,10 @@
 package RSS
 
 import (
-	"client"
 	"log"
 	"regexp"
 
+	"github.com/DeveloperHZH/GoRSS/client"
 	"gopkg.in/yaml.v2"
 )
 
