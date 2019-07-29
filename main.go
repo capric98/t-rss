@@ -1,9 +1,9 @@
 package main
 
 import (
-	"RSS"
+	"github.com/DeveloperHZH/GoRSS/rss"
 )
 
 func main() {
-	RSS.Init("config.yml")
+	rss.Init("config.yml")
 }
