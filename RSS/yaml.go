@@ -4,7 +4,7 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/DeveloperHZH/GoRSS/client"
+	"github.com/capric98/GoRSS/client"
 	"gopkg.in/yaml.v2"
 )
 

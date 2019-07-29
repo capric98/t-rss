@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/DeveloperHZH/GoRSS/RSS"
+	"github.com/capric98/GoRSS/RSS"
 )
 
 func main() {

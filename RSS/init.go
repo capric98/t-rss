@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DeveloperHZH/GoRSS/client"
+	"github.com/capric98/GoRSS/client"
 	"github.com/fatih/color"
 )
 
