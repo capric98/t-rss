@@ -100,7 +100,7 @@ func ParseSettings(data []byte) []TaskType {
 				if tmp := v.(map[interface{}]interface{})["max"]; tmp != nil {
 					switch tmp.(type) {
 					case int:
-						T[n].MaxSize = int64(tmp.(int)) * 1024
+						T[n].MaxSize = int64(tmp.(int)) * 1024 * 1024
 					case string:
 						T[n].MaxSize, _ = client.SpeedToInt(tmp.(string))
 					}
@@ -109,7 +109,7 @@ func ParseSettings(data []byte) []TaskType {
 				if tmp := v.(map[interface{}]interface{})["min"]; tmp != nil {
 					switch tmp.(type) {
 					case int:
-						T[n].MinSize = int64(tmp.(int)) * 1024
+						T[n].MinSize = int64(tmp.(int)) * 1024 * 1024
 					case string:
 						T[n].MinSize, _ = client.SpeedToInt(tmp.(string))
 					}
