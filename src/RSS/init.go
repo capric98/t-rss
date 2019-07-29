@@ -135,7 +135,7 @@ func RunTask(t TaskType) {
 			}
 
 			// Check content_size.
-			if (v.Length == 0 && !t.Strict) || (v.Length < t.MaxSize && v.Length > t.MinSize) {
+			if (v.Length == 0 && t.Strict) || v.Length > t.MaxSize || v.Length < t.MinSize {
 			} else {
 				log.Printf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title)
 				rj_count++
