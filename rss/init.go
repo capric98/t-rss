@@ -52,9 +52,15 @@ func saveItem(r RssRespType, t TaskType) {
 		return
 	}
 	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
+	}
+
+	if TestOnly {
+		PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
+		return
 	}
 
 	if t.DownPath != "" {
@@ -108,11 +114,13 @@ func runTask(t TaskType) {
 			if _, err := os.Stat(CDir + v.GUID); !os.IsNotExist(err) {
 				rjCount++
 				continue
-			}
-			if f, err := os.Create(CDir + v.GUID); err != nil {
-				LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
-			} else {
-				f.Close()
+			} else if !TestOnly {
+				if f, err := os.Create(CDir + v.GUID); err != nil {
+					LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
+				} else {
+					f.Close()
+				}
+				// Under test only mode, we do not create history file.
 			}
 
 			// Check regexp filter.
@@ -179,7 +187,7 @@ func Init() {
 	taskList := parseSettings(cdata)
 	if TestOnly {
 		log.Println(Config, "passes the test.")
-		return
+		//return
 	}
 
 	qsignal := make(chan error, 2)
