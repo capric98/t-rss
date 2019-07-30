@@ -64,7 +64,7 @@ func saveItem(r RssRespType, t TaskType) {
 	}
 
 	if t.DownPath != "" {
-		err := ioutil.WriteFile(t.DownPath+"/"+GetFileInfo(r.DURL, resp.Header), body, 0644)
+		err := ioutil.WriteFile(t.DownPath+string(os.PathSeparator)+GetFileInfo(r.DURL, resp.Header), body, 0644)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Warning: %v\n", err), true)
 		}
@@ -85,7 +85,7 @@ func saveItem(r RssRespType, t TaskType) {
 			}
 		}
 	}
-	PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
+	PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
 }
 
 func runTask(t TaskType) {
@@ -149,7 +149,7 @@ func runTask(t TaskType) {
 			go saveItem(v, t)
 
 		}
-		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", acCount, rjCount, t.TaskName), time.Since(startT))
+		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
 }
