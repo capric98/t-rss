@@ -22,6 +22,6 @@ func PrintTimeInfo(info string, t time.Duration) {
 
 func LevelPrintLog(s string, important bool) {
 	if important || (DMode) {
-		log.Println(s)
+		log.Print(s)
 	}
 }

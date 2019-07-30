@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 
@@ -34,7 +35,7 @@ func parseClientSettings(s map[interface{}]interface{}) []ClientType {
 		case "qBittorrent":
 			ps = append(ps, client.NewqBclient(v.(map[interface{}]interface{})))
 		case "Deluge":
-			ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
+			//ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
 		default:
 		}
 	}
@@ -70,6 +71,9 @@ func parseSettings(data []byte) []TaskType {
 		T[n].MinSize = -1
 		T[n].MaxSize, _ = client.SpeedToInt("2000TB") // 2000TiB+
 		for k, v := range task.(map[interface{}]interface{}) {
+			if v == nil {
+				log.Fatal(fmt.Errorf("%s: \"%s\" config is empty!\n", Config, k.(string)))
+			}
 			switch k.(string) {
 			case "rss":
 				T[n].RSSLink = v.(string)

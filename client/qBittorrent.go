@@ -74,7 +74,9 @@ func (c QBType) Add(data []byte, filename string) error {
 	// Write config.
 	for _, v := range qBparalist {
 		if c.settings[v] != "" {
-			w.WriteField(v, c.settings[v])
+			if w.WriteField(v, c.settings[v]) != nil {
+				return fmt.Errorf("Failed to write field %s!", v)
+			}
 		}
 	}
 	// Write torrent body.
@@ -82,7 +84,9 @@ func (c QBType) Add(data []byte, filename string) error {
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="torrents"; filename="%s"`, filename))
 	p, _ := w.CreatePart(h)
-	p.Write(data)
+	if _, perr := p.Write(data); perr != nil {
+		return perr
+	}
 	w.Close()
 
 	req, err := http.NewRequest("POST", c.settings["host"]+"/command/upload", &b)

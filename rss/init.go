@@ -3,6 +3,7 @@ package rss
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -92,6 +93,7 @@ func runTask(t TaskType) {
 		Rresp, err := fetch(t.RSSLink, &client)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err), true)
+			time.Sleep(time.Duration(t.Interval) * time.Second)
 			continue
 		}
 		acCount := 0
@@ -137,8 +139,8 @@ func runTask(t TaskType) {
 			acCount++
 
 			go saveItem(v, t)
-		}
 
+		}
 		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", acCount, rjCount, t.TaskName), time.Since(startT))
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
@@ -152,7 +154,6 @@ func Init() {
 		LevelPrintLog(fmt.Sprintf("Test: %t\n", TestOnly), true)
 		LevelPrintLog(fmt.Sprintf("Config: %s\n", Config), true)
 		LevelPrintLog(fmt.Sprintf("History: %s\n", CDir), true)
-		os.Exit(0)
 	}
 
 	cdata, err := ioutil.ReadFile(Config)
@@ -161,12 +162,10 @@ func Init() {
 		os.Exit(2)
 	}
 
-	if CDir == "" {
+	if Config == "config.yml" {
 		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved" + string(os.PathSeparator)
 	}
-	if CDir == "" {
-		fmt.Println("Hahaha")
-	}
+	CDir = filepath.Dir(CDir) + string(os.PathSeparator) // Just in case.
 	if _, err := os.Stat(CDir); os.IsNotExist(err) {
 		merr := os.Mkdir(CDir, 0644)
 		if merr != nil {
@@ -178,6 +177,10 @@ func Init() {
 
 	}
 	taskList := parseSettings(cdata)
+	if TestOnly {
+		log.Println(Config, "passes the test.")
+		return
+	}
 
 	qsignal := make(chan error, 2)
 	go func() {
