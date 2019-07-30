@@ -2,7 +2,6 @@ package RSS
 
 import (
 	"html"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -25,13 +24,15 @@ type RssRespType struct {
 func RssFetch(rurl string, client *http.Client) ([]RssRespType, error) {
 	resp, err := client.Get(rurl)
 	if err != nil {
-		log.Printf("Caution: Failed to get rss meta: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	fp := gofeed.NewParser()
-	rssFeed, _ := fp.Parse(resp.Body)
+	rssFeed, err := fp.Parse(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	Rresp := make([]RssRespType, len(rssFeed.Items))
 	for i, v := range rssFeed.Items {
 		tmp, err := strconv.Atoi(v.Enclosures[0].Length)

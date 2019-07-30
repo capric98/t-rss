@@ -104,7 +104,7 @@ func RunTask(t TaskType) {
 
 		Rresp, err := RssFetch(t.RSS_Link, &client)
 		if err != nil {
-			log.Printf("Caution: Task %s failed to get RSS response and raised an error: %v.\n", t.TaskName, err)
+			log.Printf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err)
 			continue
 		}
 		ac_count := 0

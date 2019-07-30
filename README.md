@@ -1,8 +1,8 @@
 ## GoRSS
 [中文文档](README-zh_CN.md)
-### Build (Seems not to work yet...)
+### Build
 ```
-go get gopkg.in/yaml.v2 github.com/mmcdole/gofeed github.com/fatih/color
+git clone https://github.com/capric98/GoRSS && cd GoRSS
 go build
 ```
 ## Dependencies
