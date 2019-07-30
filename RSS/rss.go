@@ -77,9 +77,7 @@ func GetFileInfo(furl string, headermap http.Header) string {
 	for p := len(furl) - 1; furl[p] != '/'; p-- {
 		urlname = string(furl[p]) + urlname
 	}
-	if urlname == "" {
-		urlname = "download" // In case of a blank name.
-	}
+	if urlname == "" {urlname = "download" // In case of a blank name.}
 	if headermap["Content-Disposition"] != nil {
 		headername = headermap["Content-Disposition"][0]
 		headername = headername[strings.Index(headername, "filename=")+9 : len(headername)]

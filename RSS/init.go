@@ -3,25 +3,24 @@ package RSS
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/capric98/GoRSS/client"
-	"github.com/fatih/color"
 )
 
-//color.New(color.FgYellow).SprintFunc()
-//color.New(color.FgRed).SprintFunc()
 var (
-	cGreen = color.New(color.FgWhite, color.BgGreen)
-	cRed   = color.New(color.FgHiWhite, color.BgRed)
-	oLock  = sync.Mutex{}
+	oLock    = sync.Mutex{}
+	DMode    bool
+	Config   string
+	TestOnly bool
+	CDir     string
 )
 
 func CheckRegexp(v RssRespType, reg []*regexp.Regexp) bool {
@@ -48,21 +47,21 @@ func SaveItem(r RssRespType, t TaskType) {
 
 	resp, err := nClient.Get(r.DURL)
 	if err != nil {
-		log.Printf("%v\n", err)
+		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
 		return
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("%v\n", err)
+		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
 	}
 
 	if t.DownPath != "" {
 		err := ioutil.WriteFile(t.DownPath+"/"+GetFileInfo(r.DURL, resp.Header), body, 0644)
 		if err != nil {
-			log.Printf("Warning: %v\n", err)
+			LevelPrintLog(fmt.Sprintf("Warning: %v\n", err), true)
 		}
-		//log.Printf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header))
+		LevelPrintLog(fmt.Sprintf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header)), false)
 	}
 
 	// Add file to client.
@@ -75,7 +74,7 @@ func SaveItem(r RssRespType, t TaskType) {
 				//err= v.Client.(client.DeType).Add(body)
 			}
 			if err != nil {
-				log.Printf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err)
+				LevelPrintLog(fmt.Sprintf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err), true)
 			}
 		}
 	}
@@ -83,28 +82,17 @@ func SaveItem(r RssRespType, t TaskType) {
 	return
 }
 
-func PrintTimeInfo(info string, t time.Duration) {
-	oLock.Lock()
-	fmt.Fprintf(os.Stderr, time.Now().Format("2006/01/02 15:04:05 "))
-	fmt.Fprintf(os.Stderr, info)
-	color.Set(color.FgWhite, color.BgGreen)
-	fmt.Fprintf(os.Stderr, "%s", t)
-	color.Unset()
-	fmt.Fprintf(os.Stderr, ".\n")
-	oLock.Unlock()
-}
-
 func RunTask(t TaskType) {
 	client := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
 	for {
-		log.Printf("Run task: %s\n", t.TaskName)
+		LevelPrintLog(fmt.Sprintf("Run task: %s\n", t.TaskName), true)
 		startT := time.Now()
 
 		Rresp, err := RssFetch(t.RSS_Link, &client)
 		if err != nil {
-			log.Printf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err)
+			LevelPrintLog(fmt.Sprintf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err), true)
 			continue
 		}
 		ac_count := 0
@@ -124,25 +112,25 @@ func RunTask(t TaskType) {
 
 			// Check regexp filter.
 			if (t.RjcRegexp != nil) && (CheckRegexp(v, t.RjcRegexp)) {
-				log.Printf("%s: Reject item \"%s\"\n", t.TaskName, v.Title)
+				LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\"\n", t.TaskName, v.Title), true)
 				rj_count++
 				continue
 			}
 			if t.AccRegexp != nil && (!CheckRegexp(v, t.AccRegexp)) && (t.Strict) {
-				log.Printf("%s: Cannot accept item \"%s\" due to strict mode.\n", t.TaskName, v.Title)
+				LevelPrintLog(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.\n", t.TaskName, v.Title), true)
 				rj_count++
 				continue
 			}
 
 			// Check content_size.
 			if !((v.Length > t.MinSize && v.Length < t.MaxSize) || (v.Length == 0 && !t.Strict)) {
-				log.Printf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title)
-				//log.Println(v.Length, "vs", t.MinSize, t.MaxSize)
+				LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title), true)
+				LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, t.MinSize, t.MaxSize), false)
 				rj_count++
 				continue
 			}
 
-			log.Printf("%s: Accept item \"%s\"\n", t.TaskName, v.Title)
+			LevelPrintLog(fmt.Sprintf("%s: Accept item \"%s\"\n", t.TaskName, v.Title), true)
 			ac_count++
 
 			go SaveItem(v, t)
@@ -153,16 +141,38 @@ func RunTask(t TaskType) {
 	}
 }
 
-func Init(conf string) {
+func Init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	cdata, err := ioutil.ReadFile(conf)
-	if err != nil {
-		log.Fatalf("Error: %v\n", err)
+	if DMode {
+		LevelPrintLog(fmt.Sprintf("Debug: %t\n", DMode), true)
+		LevelPrintLog(fmt.Sprintf("Test: %t\n", TestOnly), true)
+		LevelPrintLog(fmt.Sprintf("Config: %s\n", Config), true)
+		LevelPrintLog(fmt.Sprintf("History: %s\n", CDir), true)
+		os.Exit(0)
 	}
-	if _, err := os.Stat(".RSS-saved"); os.IsNotExist(err) {
-		os.Mkdir(".RSS-saved", 0644)
-		log.Println(".RSS-saved dir did not exist, make it!")
+
+	cdata, err := ioutil.ReadFile(Config)
+	if err != nil {
+		LevelPrintLog(fmt.Sprintf("Error: %v\n", err), true)
+		os.Exit(2)
+	}
+
+	if CDir == "" {
+		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved" + string(os.PathSeparator)
+	}
+	if CDir == "" {
+		fmt.Println("Hahaha")
+	}
+	if _, err := os.Stat(CDir); os.IsNotExist(err) {
+		merr := os.Mkdir(CDir, 0644)
+		if merr != nil {
+			LevelPrintLog(fmt.Sprintf("%v\n", merr), true)
+			os.Exit(2)
+		} else {
+			LevelPrintLog(fmt.Sprintf("%s did not exist, make it!", CDir), false)
+		}
+
 	}
 	taskList := ParseSettings(cdata)
 
@@ -177,6 +187,6 @@ func Init(conf string) {
 		go RunTask(t)
 	}
 	<-qsignal
-	log.Println("Receive signal 2, quit the program.")
-	log.Println("Bye.")
+	LevelPrintLog(fmt.Sprintf("Receive signal 2, quit the program.\n"), true)
+	LevelPrintLog(fmt.Sprintf("Bye.\n"), true)
 }
