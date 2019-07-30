@@ -59,7 +59,7 @@ func saveItem(r RssRespType, t TaskType) {
 	}
 
 	if TestOnly {
-		PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
+		PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
 		return
 	}
 
@@ -93,7 +93,7 @@ func runTask(t TaskType) {
 		Timeout: time.Duration(10 * time.Second),
 	}
 	for {
-		LevelPrintLog(fmt.Sprintf("Run task: %s\n", t.TaskName), true)
+		LevelPrintLog(fmt.Sprintf("Run task: %s.\n", t.TaskName), true)
 		startT := time.Now()
 
 		Rresp, err := fetch(t.RSSLink, &client)
