@@ -1,4 +1,4 @@
-package RSS
+package rss
 
 import (
 	"log"
@@ -8,11 +8,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// ClientType  Add to client type.
 type ClientType = client.ClientType
 
+// TaskType  Task structure.
 type TaskType struct {
 	TaskName  string
-	RSS_Link  string
+	RSSLink   string
 	Interval  int
 	ExeAtTime []int
 	DownPath  string
@@ -25,7 +27,7 @@ type TaskType struct {
 	RjcRegexp []*regexp.Regexp
 }
 
-func ParseClientSettings(s map[interface{}]interface{}) []ClientType {
+func parseClientSettings(s map[interface{}]interface{}) []ClientType {
 	ps := make([]ClientType, 0)
 	for k, v := range s {
 		switch k.(string) {
@@ -39,7 +41,7 @@ func ParseClientSettings(s map[interface{}]interface{}) []ClientType {
 	return ps
 }
 
-func ConfigCheck(ts []TaskType) []TaskType {
+func configCheck(ts []TaskType) []TaskType {
 	for i := 0; i < len(ts); i++ {
 		if ts[i].Interval <= 0 {
 			log.Printf("Task %s misses Interval, no bother to set it to default 60s.\n", ts[i].TaskName)
@@ -52,7 +54,7 @@ func ConfigCheck(ts []TaskType) []TaskType {
 	return ts
 }
 
-func ParseSettings(data []byte) []TaskType {
+func parseSettings(data []byte) []TaskType {
 	m := make(map[interface{}]interface{})
 	err := yaml.Unmarshal(data, &m)
 	if err != nil {
@@ -70,11 +72,11 @@ func ParseSettings(data []byte) []TaskType {
 		for k, v := range task.(map[interface{}]interface{}) {
 			switch k.(string) {
 			case "rss":
-				T[n].RSS_Link = v.(string)
+				T[n].RSSLink = v.(string)
 			case "download_to":
 				T[n].DownPath = v.(string)
 			case "client":
-				T[n].Client = ParseClientSettings(v.(map[interface{}]interface{}))
+				T[n].Client = parseClientSettings(v.(map[interface{}]interface{}))
 			case "regexp":
 				// We'd better check the validity of regexps after...
 
@@ -126,5 +128,5 @@ func ParseSettings(data []byte) []TaskType {
 		n++
 	}
 
-	return ConfigCheck(T)
+	return configCheck(T)
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/capric98/GoRSS/RSS"
+	"github.com/capric98/GoRSS/rss"
 )
 
 var (
@@ -14,15 +14,15 @@ var (
 )
 
 func flagInit() {
-	RSS.DMode = *DMode
-	RSS.Config = *Config
-	RSS.TestOnly = *TestOnly
-	RSS.CDir = *CDir
+	rss.DMode = *DMode
+	rss.Config = *Config
+	rss.TestOnly = *TestOnly
+	rss.CDir = *CDir
 }
 
 func main() {
 	flag.Parse()
 	flagInit()
 
-	RSS.Init()
+	rss.Init()
 }

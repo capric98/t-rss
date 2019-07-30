@@ -1,4 +1,4 @@
-package RSS
+package rss
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package RSS
+package rss
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ var (
 	CDir     string
 )
 
-func CheckRegexp(v RssRespType, reg []*regexp.Regexp) bool {
+func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	for _, r := range reg {
 		if r.MatchString(v.Title) {
 			return true
@@ -39,7 +39,7 @@ func CheckRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	return false
 }
 
-func SaveItem(r RssRespType, t TaskType) {
+func saveItem(r RssRespType, t TaskType) {
 	nClient := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
@@ -79,10 +79,9 @@ func SaveItem(r RssRespType, t TaskType) {
 		}
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" uses ", r.Title), time.Since(startT))
-	return
 }
 
-func RunTask(t TaskType) {
+func runTask(t TaskType) {
 	client := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
@@ -90,13 +89,13 @@ func RunTask(t TaskType) {
 		LevelPrintLog(fmt.Sprintf("Run task: %s\n", t.TaskName), true)
 		startT := time.Now()
 
-		Rresp, err := RssFetch(t.RSS_Link, &client)
+		Rresp, err := fetch(t.RSSLink, &client)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err), true)
 			continue
 		}
-		ac_count := 0
-		rj_count := 0
+		acCount := 0
+		rjCount := 0
 		for _, v := range Rresp {
 			// Check if item had been accepted yet.
 			if v.GUID == "" {
@@ -104,21 +103,25 @@ func RunTask(t TaskType) {
 			} else {
 				v.GUID = NameRegularize(v.GUID)
 			} // Just in case.
-			if _, err := os.Stat(".RSS-saved/" + v.GUID); !os.IsNotExist(err) {
-				rj_count++
+			if _, err := os.Stat(CDir + v.GUID); !os.IsNotExist(err) {
+				rjCount++
 				continue
 			}
-			os.Create(".RSS-saved/" + v.GUID)
+			if f, err := os.Create(CDir + v.GUID); err != nil {
+				LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
+			} else {
+				f.Close()
+			}
 
 			// Check regexp filter.
-			if (t.RjcRegexp != nil) && (CheckRegexp(v, t.RjcRegexp)) {
+			if (t.RjcRegexp != nil) && (checkRegexp(v, t.RjcRegexp)) {
 				LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\"\n", t.TaskName, v.Title), true)
-				rj_count++
+				rjCount++
 				continue
 			}
-			if t.AccRegexp != nil && (!CheckRegexp(v, t.AccRegexp)) && (t.Strict) {
+			if t.AccRegexp != nil && (!checkRegexp(v, t.AccRegexp)) && (t.Strict) {
 				LevelPrintLog(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.\n", t.TaskName, v.Title), true)
-				rj_count++
+				rjCount++
 				continue
 			}
 
@@ -126,17 +129,17 @@ func RunTask(t TaskType) {
 			if !((v.Length > t.MinSize && v.Length < t.MaxSize) || (v.Length == 0 && !t.Strict)) {
 				LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title), true)
 				LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, t.MinSize, t.MaxSize), false)
-				rj_count++
+				rjCount++
 				continue
 			}
 
 			LevelPrintLog(fmt.Sprintf("%s: Accept item \"%s\"\n", t.TaskName, v.Title), true)
-			ac_count++
+			acCount++
 
-			go SaveItem(v, t)
+			go saveItem(v, t)
 		}
 
-		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", ac_count, rj_count, t.TaskName), time.Since(startT))
+		PrintTimeInfo(fmt.Sprintf("Accept %d item(s), reject %d item(s). Task %q costs ", acCount, rjCount, t.TaskName), time.Since(startT))
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
 }
@@ -174,17 +177,17 @@ func Init() {
 		}
 
 	}
-	taskList := ParseSettings(cdata)
+	taskList := parseSettings(cdata)
 
 	qsignal := make(chan error, 2)
 	go func() {
-		c := make(chan os.Signal)
+		c := make(chan os.Signal, 10) // bufferd
 		signal.Notify(c, os.Interrupt)
 		qsignal <- fmt.Errorf("%s", <-c)
 	}()
 
 	for _, t := range taskList {
-		go RunTask(t)
+		go runTask(t)
 	}
 	<-qsignal
 	LevelPrintLog(fmt.Sprintf("Receive signal 2, quit the program.\n"), true)

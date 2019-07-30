@@ -1,4 +1,4 @@
-package RSS
+package rss
 
 import (
 	"html"
@@ -21,7 +21,7 @@ type RssRespType struct {
 	GUID        string
 }
 
-func RssFetch(rurl string, client *http.Client) ([]RssRespType, error) {
+func fetch(rurl string, client *http.Client) ([]RssRespType, error) {
 	resp, err := client.Get(rurl)
 	if err != nil {
 		return nil, err
@@ -77,14 +77,16 @@ func GetFileInfo(furl string, headermap http.Header) string {
 	for p := len(furl) - 1; furl[p] != '/'; p-- {
 		urlname = string(furl[p]) + urlname
 	}
-	if urlname == "" {urlname = "download" // In case of a blank name.}
+	if urlname == "" {
+		urlname = "download" // In case of a blank name.
+	}
 	if headermap["Content-Disposition"] != nil {
 		headername = headermap["Content-Disposition"][0]
-		headername = headername[strings.Index(headername, "filename=")+9 : len(headername)]
+		headername = headername[strings.Index(headername, "filename=")+9:]
 		for headername[0] == ' ' || headername[0] == '"' {
 			headername = headername[1:]
 		}
-		if strings.Index(headername, ";") != -1 {
+		if strings.Contains(headername, ";") {
 			headername = headername[:strings.Index(headername, ";")]
 		}
 		for headername[len(headername)-1] == ' ' || headername[len(headername)-1] == '"' {
