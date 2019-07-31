@@ -22,7 +22,9 @@ func PrintTimeInfo(info string, t time.Duration) {
 }
 
 func LevelPrintLog(s string, important bool) {
+	oLock.Lock()
 	if important || (DMode) {
 		log.Print(s)
 	}
+	oLock.Unlock()
 }
