@@ -75,15 +75,27 @@ func saveItem(r RssRespType, t TaskType) {
 	// Add file to client.
 	if t.Client != nil {
 		for _, v := range t.Client {
-			switch v.Name {
-			case "qBittorrent":
-				err = v.Client.(client.QBType).Add(body, GetFileInfo(r.DURL, resp.Header))
-			case "Deluge":
-				//err= v.Client.(client.DeType).Add(body)
-			}
-			if err != nil {
-				LevelPrintLog(fmt.Sprintf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err), true)
-				return
+			for ec := 0; ec < 3; ec++ {
+				switch v.Name {
+				case "qBittorrent":
+					if ec != 0 {
+						_ = v.Client.(client.QBType).Init()
+					} // In case of the session timeout, reinitiallize it.
+					err = v.Client.(client.QBType).Add(body, GetFileInfo(r.DURL, resp.Header))
+				case "Deluge":
+					//err= v.Client.(client.DeType).Add(body)
+				}
+				if err != nil {
+					// If fail to add torrent to client, try another 2 times.
+					LevelPrintLog(fmt.Sprintf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err), true)
+				} else {
+					break
+				}
+				if ec == 2 {
+					return
+					// Failed 3 times, quit and do not save history.
+				}
+
 			}
 		}
 	}
@@ -119,6 +131,9 @@ func runTask(t TaskType) {
 			// Check if item had been accepted yet.
 			if v.GUID == "" {
 				v.GUID = NameRegularize(v.Title)
+				if len(v.GUID) > 200 {
+					v.GUID = v.GUID[:200]
+				}
 			} else {
 				v.GUID = NameRegularize(v.GUID)
 			} // Just in case.
