@@ -84,7 +84,7 @@ func parseSettings(data []byte) []TaskType {
 			case "regexp":
 				// We'd better check the validity of regexps after...
 
-				if tmp := v.(map[interface{}]interface{})["acceptFilter"]; tmp != nil {
+				if tmp := v.(map[interface{}]interface{})["accept"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
 						re, err := regexp.Compile(r.(string))
 						if err != nil {
@@ -93,7 +93,7 @@ func parseSettings(data []byte) []TaskType {
 						T[n].AccRegexp = append(T[n].AccRegexp, re)
 					}
 				}
-				if tmp := v.(map[interface{}]interface{})["rejectFilter"]; tmp != nil {
+				if tmp := v.(map[interface{}]interface{})["reject"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
 						re, err := regexp.Compile(r.(string))
 						if err != nil {

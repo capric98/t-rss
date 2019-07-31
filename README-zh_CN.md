@@ -21,9 +21,9 @@ Name0:                             # 任务名称，随意取
     min: 2048                      #*min: "2GB"  or  min: "2G"
     max: 9999                      #*max: "1TB"  blabla...
   regexp:                          #*正则表达式，可不配置
-    acceptFilter:                  #*接受符合以下正则表达式列表的种子，仅在strict: yes时起作用
+    accept:                  #*接受符合以下正则表达式列表的种子，仅在strict: yes时起作用
       - Vol.*?Fin
-    rejectFilter:                  #*拒绝符合以下正则表达式列表的种子
+    reject:                  #*拒绝符合以下正则表达式列表的种子
       - Test
   interval: 10                     #*RSS间隔，单位秒，非负整数，默认60s
   download_to: "/home/WatchDir/"   #*种子文件保存目录，可不设置

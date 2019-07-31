@@ -189,10 +189,12 @@ func Init() {
 		os.Exit(2)
 	}
 
-	if Config == "config.yml" {
-		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved" + string(os.PathSeparator)
+	if Config != "config.yml" && CDir == ".RSS-saved" {
+		// Change config file path without setting CDir.
+		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved"
 	}
 	CDir = filepath.Dir(CDir) + string(os.PathSeparator) // Just in case.
+	LevelPrintLog(fmt.Sprintf("History will be saved to: %s\n", CDir), false)
 	if _, err := os.Stat(CDir); os.IsNotExist(err) {
 		merr := os.Mkdir(CDir, 0644)
 		if merr != nil {
