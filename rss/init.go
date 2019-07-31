@@ -67,6 +67,7 @@ func saveItem(r RssRespType, t TaskType) {
 		err := ioutil.WriteFile(t.DownPath+string(os.PathSeparator)+GetFileInfo(r.DURL, resp.Header), body, 0644)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Warning: %v\n", err), true)
+			return
 		}
 		LevelPrintLog(fmt.Sprintf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header)), false)
 	}
@@ -82,10 +83,20 @@ func saveItem(r RssRespType, t TaskType) {
 			}
 			if err != nil {
 				LevelPrintLog(fmt.Sprintf("%s: Failed to add item \"%s\" to %s client with message: \"%v\".\n", t.TaskName, r.Title, v.Name, err), true)
+				return
 			}
 		}
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
+
+	if !TestOnly {
+		if f, err := os.Create(CDir + r.GUID); err != nil {
+			LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
+		} else {
+			f.Close()
+		}
+		// Under test only mode, we do not create history file.
+	}
 }
 
 func runTask(t TaskType) {
@@ -114,13 +125,6 @@ func runTask(t TaskType) {
 			if _, err := os.Stat(CDir + v.GUID); !os.IsNotExist(err) {
 				rjCount++
 				continue
-			} else if !TestOnly {
-				if f, err := os.Create(CDir + v.GUID); err != nil {
-					LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
-				} else {
-					f.Close()
-				}
-				// Under test only mode, we do not create history file.
 			}
 
 			// Check regexp filter.
