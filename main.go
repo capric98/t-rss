@@ -7,6 +7,8 @@ import (
 	"github.com/capric98/GoRSS/rss"
 )
 
+// import _ "net/http/pprof"
+
 var (
 	DMode    = flag.Bool("debug", false, "enable debug mode with a more detailed log output.") // Debug log output.
 	Config   = flag.String("config", "config.yml", "config file path")
@@ -24,6 +26,10 @@ func flagInit() {
 func main() {
 	flag.Parse()
 	flagInit()
+
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 
 	rss.Init()
 }
