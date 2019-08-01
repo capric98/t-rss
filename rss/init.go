@@ -191,9 +191,9 @@ func Init() {
 
 	if Config != "config.yml" && CDir == ".RSS-saved" {
 		// Change config file path without setting CDir.
-		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved"
+		CDir = filepath.Dir(Config) + string(os.PathSeparator) + ".RSS-saved" + string(os.PathSeparator)
 	}
-	CDir = filepath.Dir(CDir) + string(os.PathSeparator) // Just in case.
+	CDir = filepath.Dir(CDir+string(os.PathSeparator)) + string(os.PathSeparator) // Just in case.
 	LevelPrintLog(fmt.Sprintf("History will be saved to: %s\n", CDir), false)
 	if _, err := os.Stat(CDir); os.IsNotExist(err) {
 		merr := os.Mkdir(CDir, 0644)
@@ -221,6 +221,7 @@ func Init() {
 	for _, t := range taskList {
 		go runTask(t)
 	}
+	go cleanDaemon()
 	<-qsignal
 	LevelPrintLog(fmt.Sprintf("Receive signal 2, quit the program.\n"), true)
 	LevelPrintLog(fmt.Sprintf("Bye.\n"), true)
