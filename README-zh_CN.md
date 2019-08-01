@@ -2,13 +2,7 @@
 GoRSS是一个自动rss bt种子文件的程序，相比flexget丰富的功能，GoRSS功能较为精简，同时体积更小、占用资源更少，支持自动将rss得到的种子文件添加至bt客户端（目前仅支持qBittorrent），将来会加入从irc获取资源信息的功能（咕咕咕）
 
 ## 安装
-由于新手上路不太清楚如何较好把Go项目发到GitHub，因此建议不熟悉Go语言的朋友直接下载最新的release zip文件解压运行。解压后得到目录结构如下：
-```bash
-|- RSS
-   |- config.yml # 配置文件
-   |- GoRSS      # 软件本体，二进制格式可直接运行
-   |- .RSS-saved # 缓存目录，用来记录种子是否下载过，在linux下默认隐藏
-```
+由于新手上路不太清楚如何较好把Go项目发到GitHub，因此建议不熟悉Go语言的朋友直接下载最新的release.zip文件解压运行。解压后得到二进制文件`GoRSS`
 
 由于目前程序还在开发过程中，因此配置文件是直接hardcode进去的，将来会有自定义配置文件位置的特性。。
 ## 配置
@@ -56,4 +50,6 @@ Name2:
 [go-yaml](https://github.com/go-yaml/yaml)
 
 [color](https://github.com/fatih/color)
+
+[go-rencode](https://github.com/gdm85/go-rencode)
 

@@ -12,3 +12,5 @@ go build
 
 [color](https://github.com/fatih/color)
 
+[go-rencode](https://github.com/gdm85/go-rencode)
+
