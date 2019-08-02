@@ -17,14 +17,14 @@ import (
 )
 
 var (
-	request_id = 0
 	glock      sync.Mutex
 	rlock      sync.Mutex
 	wlock      sync.Mutex
 	rbuf       bytes.Buffer
-	rechan     chan bool
-	cchan      chan bool
+	rechan     = make(chan bool)
 	bufreader  = bufio.NewReader(&rbuf)
+	request_id = 0
+	wait       = 10
 )
 
 type DeType struct {
@@ -36,11 +36,16 @@ type DeType struct {
 }
 
 func keepRead(c *tls.Conn) {
-	select {
-	case <-cchan:
-		_, _ = io.Copy(&rbuf, c)
-	case <-rechan:
-		return
+	for {
+		select {
+		case <-rechan:
+			return
+		default:
+			_ = c.SetReadDeadline(time.Now().Add(1 * time.Second))
+			if _, err := io.CopyN(&rbuf, c, 1); err != nil {
+				continue
+			}
+		}
 	}
 }
 
@@ -52,7 +57,6 @@ func (c DeType) newReqID() int {
 }
 
 func NewDeClient(m map[interface{}]interface{}) ClientType {
-
 	var nc ClientType
 	nc.Name = "Deluge"
 	tclient := &DeType{
@@ -88,24 +92,30 @@ func makeList(args ...interface{}) *rencode.List {
 	}
 	return &list
 }
+func makeDict(args ...interface{}) *rencode.Dictionary {
+	var dict rencode.Dictionary
+	return &dict
+}
 
 func (c *DeType) Init() error {
 	conn, err := tls.Dial("tcp", c.settings["host"], &tls.Config{
 		InsecureSkipVerify: true,
 	})
 	// Deluge use self-signed cert and seems must to use it...
-	fmt.Println("Dial success!")
 	if err != nil {
 		return err
 	}
 	c.client = conn
-	//go keepRead(conn)
+	go keepRead(conn)
 	if err := c.detectVersion(); err != nil {
 		return err
 	}
 
+	rbuf.Truncate(0)
+	fmt.Println("rbuf len=", rbuf.Len())
+
 	if c.version == 2 {
-		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), nil); err != nil {
+		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict()); err != nil {
 			return err
 		}
 		d, err := c.recvResp()
@@ -120,28 +130,37 @@ func (c *DeType) Init() error {
 			fmt.Println(i)
 		}
 	} else {
-		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), nil); err != nil {
+		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict()); err != nil {
 			log.Fatal(err)
 			return err
 		}
-		fmt.Printf("%+q\n", rbuf.String())
-		fmt.Println("===========================1")
 		d, err := c.recvResp()
 		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		var l rencode.List
-		d.Scan(&l)
-		fmt.Println(l)
+		var l, ll rencode.List
+		var rtype, id int
+		_ = d.Scan(&l)
+		_ = l.Scan(&rtype, &id, &ll)
+		if rtype != 1 {
+			var estring string
+			for _, v := range ll.Values() {
+				estring = estring + fmt.Sprintf("%s\n", string(v.([]uint8)))
+			}
+			return fmt.Errorf(estring)
+		} else {
+			return nil
+		}
 	}
 	os.Exit(1)
 	return nil
 }
 
 func (c *DeType) Reconnect() error {
-	//rechan <- true
-	c.client.Close()
+	if err := c.CloseSocket(); err != nil {
+		return err
+	}
 
 	nconn, err := tls.Dial("tcp", c.settings["host"], &tls.Config{
 		InsecureSkipVerify: true,
@@ -151,26 +170,34 @@ func (c *DeType) Reconnect() error {
 	}
 	c.client = nconn
 
-	//go keepRead(nconn)
+	go keepRead(nconn)
 
 	return nil
 }
 
+func (c *DeType) CloseSocket() error {
+	rechan <- true
+	if err := c.client.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *DeType) detectVersion() error {
-	_ = c.sendCall(1, -1, "daemon.info", nil, nil)
-	_ = c.sendCall(2, -1, "daemon.info", nil, nil)
-	_ = c.sendCall(2, 1, "daemon.info", nil, nil)
+	_ = c.sendCall(1, -1, "daemon.info", makeList(), makeDict())
+	_ = c.sendCall(2, -1, "daemon.info", makeList(), makeDict())
+	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict())
 	var buf bytes.Buffer
-	// Seems I could read all the data from client.Read
-	// resp data is like head...bodylen...body
-	// and body is zlib compressed...
-	// go to sleep and make this note (zzzz
-	fmt.Println("Detect resp.")
+
+	time.Sleep(time.Duration(wait) * time.Millisecond)
+
 	rlock.Lock()
-	_, err := io.CopyN(&buf, c.client, 1)
+	_, err := io.CopyN(&buf, bufreader, 1)
 	rlock.Unlock()
+
 	resp := buf.Bytes()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	if resp[0] == byte('D') {
@@ -191,15 +218,7 @@ func (c *DeType) detectVersion() error {
 	fmt.Println("Deluge version:", c.version)
 	fmt.Println("Protocal version:", c.protocolVersion)
 
-	for {
-		_ = c.client.SetReadDeadline(time.Now().Add(1 * time.Second))
-		if _, err := io.CopyN(&rbuf, c.client, 1); err != nil {
-			break
-		}
-	}
-	fmt.Println(rbuf.Len())
 	rbuf.Truncate(0)
-	fmt.Println(rbuf.Len())
 	return nil
 }
 
@@ -209,34 +228,18 @@ func (c *DeType) Call(method string, args *rencode.List, kargs *rencode.Dictiona
 
 func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.List, kargs *rencode.Dictionary) error {
 	reqID := c.newReqID()
-	fmt.Println("Request ID:", reqID)
 	var b, z bytes.Buffer
 	var reql rencode.List
+
 	e := rencode.NewEncoder(&b)
-	if args == nil {
-		if kargs == nil {
-			reql = rencode.NewList(reqID, method, nil, nil)
-		} else {
-			reql = rencode.NewList(reqID, method, nil, *kargs)
-		}
-	} else {
-		if kargs == nil {
-			reql = rencode.NewList(reqID, method, *args, nil)
-		} else {
-			reql = rencode.NewList(reqID, method, *args, *kargs)
-		}
-	}
+	reql = rencode.NewList(reqID, method, *args, *kargs)
 	if err := e.Encode(rencode.NewList(reql)); err != nil {
 		return err
 	}
+
 	tmp := zlib.NewWriter(&z)
 	_, _ = tmp.Write(b.Bytes())
-	// The output from the python example isn't a "complete" stream,
-	// its just flushing the buffer after compressing the first string.
-	// You can get the same output from the Go code by replacing Close() with Flush()
-	//tmp.Flush()
 	tmp.Close()
-	fmt.Println("z len:", z.Len())
 
 	wlock.Lock()
 	_ = c.client.SetWriteDeadline(time.Now().Add(10 * time.Second))
@@ -247,7 +250,7 @@ func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.
 			req.WriteRune('D')
 			_ = binary.Write(&req, binary.BigEndian, int32(z.Len()))
 			_, _ = req.Write(z.Bytes())
-			//fmt.Printf("%+q\n", z.String())
+			// fmt.Printf("%+q\n", z.String())
 			if _, err := c.client.Write(req.Bytes()); err != nil {
 				return err
 			}
@@ -255,14 +258,14 @@ func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.
 			_ = binary.Write(&req, binary.BigEndian, uint8(c.protocolVersion))
 			_ = binary.Write(&req, binary.BigEndian, uint32(z.Len()))
 			_, _ = req.Write(z.Bytes())
-			//fmt.Printf("%+q\n", z.String())
+			// fmt.Printf("%+q\n", z.String())
 			if _, err := c.client.Write(req.Bytes()); err != nil {
 				return err
 			}
 		}
 	} else {
-		// deVer==1
-		fmt.Printf("%+q\n", z.String())
+		// deluge_Ver == 1
+		// fmt.Printf("%+q\n", z.String())
 		if _, err := c.client.Write(z.Bytes()); err != nil {
 			return err
 		}
@@ -274,23 +277,12 @@ func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.
 func (c *DeType) recvResp() (*rencode.Decoder, error) {
 	var buf bytes.Buffer
 	var body bytes.Buffer
+	var r io.ReadCloser
 	w := bufio.NewWriter(&buf)
 	bw := bufio.NewWriter(&body)
-	//r := bufio.NewReader(&buf)
 
-	for {
-		_ = c.client.SetReadDeadline(time.Now().Add(1 * time.Second))
-		if _, err := io.CopyN(&rbuf, c.client, 1); err != nil {
-			break
-		}
-	}
-
-	tmp := rbuf.Bytes()
-	rtmp := bytes.NewReader(tmp)
-	//
-	//fmt.Println(rbuf.Len())
-
-	fmt.Println("Read done.")
+	time.Sleep(time.Duration(wait) * time.Millisecond)
+	fmt.Println("rbuf remains", rbuf.Len())
 
 	if c.version == 2 {
 		header, _ := bufreader.ReadByte()
@@ -319,14 +311,24 @@ func (c *DeType) recvResp() (*rencode.Decoder, error) {
 				return nil, err
 			}
 		}
-		r, _ := zlib.NewReader(&buf)
-		_, _ = io.Copy(bw, r)
-		r.Close()
-		return rencode.NewDecoder(&body), nil
+		tr, err := zlib.NewReader(&buf)
+		if err != nil {
+			return nil, err
+		}
+		r = tr
+	} else {
+		tmp := rbuf.Bytes()
+		rtmp := bytes.NewReader(tmp)
+		tr, err := zlib.NewReader(rtmp)
+		if err != nil {
+			return nil, err
+		}
+		r = tr
 	}
 
-	r, _ := zlib.NewReader(rtmp)
 	_, _ = io.Copy(bw, r)
 	r.Close()
+
+	rbuf.Truncate(0)
 	return rencode.NewDecoder(&body), nil
 }
