@@ -22,6 +22,7 @@ var (
 	Config   string
 	TestOnly bool
 	CDir     string
+	Learn    bool
 )
 
 func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
@@ -73,7 +74,7 @@ func saveItem(r RssRespType, t TaskType) {
 	}
 
 	// Add file to client.
-	if t.Client != nil {
+	if t.Client != nil && !Learn {
 		for _, v := range t.Client {
 			for ec := 0; ec < 3; ec++ {
 				switch v.Name {
@@ -108,6 +109,10 @@ func saveItem(r RssRespType, t TaskType) {
 			f.Close()
 		}
 		// Under test only mode, we do not create history file.
+	}
+	if Learn {
+		LevelPrintLog("Learning finished.", true)
+		os.Exit(0)
 	}
 }
 
