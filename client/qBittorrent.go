@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -101,11 +100,14 @@ func (c QBType) Add(data []byte, filename string) error {
 		fmt.Println(err)
 		return err
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	if string(body) != "Ok." {
-		return errors.New(string(body))
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP code: %d", resp.StatusCode)
 	}
 
-	resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	if string(body) != "Ok." {
+		return fmt.Errorf("webui returns \"" + string(body) + "\" rather than \"Ok.\"")
+	}
 	return nil
 }

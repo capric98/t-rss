@@ -35,7 +35,7 @@ func parseClientSettings(s map[interface{}]interface{}) []ClientType {
 		case "qBittorrent":
 			ps = append(ps, client.NewqBclient(v.(map[interface{}]interface{})))
 		case "Deluge":
-			//ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
+			ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
 		default:
 		}
 	}
