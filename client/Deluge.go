@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -24,7 +25,7 @@ var (
 	rechan     = make(chan bool)
 	bufreader  = bufio.NewReader(&rbuf)
 	request_id = 0
-	wait       = 10
+	wait       = 100
 )
 
 type DeType struct {
@@ -56,7 +57,18 @@ func (c DeType) newReqID() int {
 	return request_id
 }
 
+func Test() {
+	var buf bytes.Buffer
+	e := rencode.NewEncoder(&buf)
+	var dict rencode.Dictionary
+	dict.Add("client_version", "deluge-client")
+	e.Encode(dict)
+	fmt.Printf("%+q\n", buf.String())
+}
+
 func NewDeClient(m map[interface{}]interface{}) ClientType {
+	Test()
+
 	var nc ClientType
 	nc.Name = "Deluge"
 	tclient := &DeType{
@@ -92,8 +104,14 @@ func makeList(args ...interface{}) *rencode.List {
 	}
 	return &list
 }
-func makeDict(args ...interface{}) *rencode.Dictionary {
+func makeDict(args map[interface{}]interface{}) *rencode.Dictionary {
 	var dict rencode.Dictionary
+	if args != nil {
+		for k, v := range args {
+			dict.Add(v, k)
+		}
+		fmt.Println(dict)
+	}
 	return &dict
 }
 
@@ -115,7 +133,7 @@ func (c *DeType) Init() error {
 	fmt.Println("rbuf len=", rbuf.Len())
 
 	if c.version == 2 {
-		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict()); err != nil {
+		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict(nil)); err != nil {
 			return err
 		}
 		d, err := c.recvResp()
@@ -130,7 +148,7 @@ func (c *DeType) Init() error {
 			fmt.Println(i)
 		}
 	} else {
-		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict()); err != nil {
+		if err := c.Call("daemon.login", makeList(c.settings["username"], c.settings["password"]), makeDict(nil)); err != nil {
 			log.Fatal(err)
 			return err
 		}
@@ -184,9 +202,9 @@ func (c *DeType) CloseSocket() error {
 }
 
 func (c *DeType) detectVersion() error {
-	_ = c.sendCall(1, -1, "daemon.info", makeList(), makeDict())
-	_ = c.sendCall(2, -1, "daemon.info", makeList(), makeDict())
-	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict())
+	_ = c.sendCall(1, -1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(2, -1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
 	var buf bytes.Buffer
 
 	time.Sleep(time.Duration(wait) * time.Millisecond)
@@ -230,6 +248,7 @@ func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.
 	reqID := c.newReqID()
 	var b, z bytes.Buffer
 	var reql rencode.List
+	rbuf.Truncate(0)
 
 	e := rencode.NewEncoder(&b)
 	reql = rencode.NewList(reqID, method, *args, *kargs)
@@ -265,7 +284,7 @@ func (c *DeType) sendCall(deVer int, protoVer int, method string, args *rencode.
 		}
 	} else {
 		// deluge_Ver == 1
-		// fmt.Printf("%+q\n", z.String())
+		fmt.Printf("%+q\n", z.String())
 		if _, err := c.client.Write(z.Bytes()); err != nil {
 			return err
 		}
@@ -331,4 +350,19 @@ func (c *DeType) recvResp() (*rencode.Decoder, error) {
 
 	rbuf.Truncate(0)
 	return rencode.NewDecoder(&body), nil
+}
+
+func (c *DeType) Add(data []byte, name string) error {
+	b64 := base64.StdEncoding.EncodeToString(data)
+	m := make(map[interface{}]interface{})
+	//m["filename"] = name
+	m["download_location"] = "/home/Downloads/"
+	c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(m))
+	d, e := c.recvResp()
+	if e != nil {
+		fmt.Println(e)
+		return e
+	}
+	fmt.Println(d.DecodeNext())
+	return nil
 }

@@ -64,13 +64,15 @@ func saveItem(r RssRespType, t TaskType) {
 		return
 	}
 
+	filename := GetFileInfo(r.DURL, resp.Header)
+
 	if t.DownPath != "" {
-		err := ioutil.WriteFile(t.DownPath+string(os.PathSeparator)+GetFileInfo(r.DURL, resp.Header), body, 0644)
+		err := ioutil.WriteFile(t.DownPath+string(os.PathSeparator)+filename, body, 0644)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Warning: %v\n", err), true)
 			return
 		}
-		LevelPrintLog(fmt.Sprintf("Item \"%s\" is saved as \"%s\"\n", r.Title, GetFileInfo(r.DURL, resp.Header)), false)
+		LevelPrintLog(fmt.Sprintf("Item \"%s\" is saved as \"%s\"\n", r.Title, filename), false)
 	}
 
 	// Add file to client.
@@ -82,9 +84,9 @@ func saveItem(r RssRespType, t TaskType) {
 					if ec != 0 {
 						_ = v.Client.(client.QBType).Init()
 					} // In case of the session timeout, reinitiallize it.
-					err = v.Client.(client.QBType).Add(body, GetFileInfo(r.DURL, resp.Header))
+					err = v.Client.(client.QBType).Add(body, filename)
 				case "Deluge":
-					//err= v.Client.(client.DeType).Add(body)
+					err = v.Client.(*client.DeType).Add(body, filename)
 				}
 				if err != nil {
 					// If fail to add torrent to client, try another 2 times.
