@@ -112,10 +112,6 @@ func saveItem(r RssRespType, t TaskType) {
 		}
 		// Under test only mode, we do not create history file.
 	}
-	if Learn {
-		LevelPrintLog("Learning finished.", true)
-		os.Exit(0)
-	}
 }
 
 func runTask(t TaskType) {
@@ -176,6 +172,10 @@ func runTask(t TaskType) {
 
 		}
 		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))
+		if Learn {
+			LevelPrintLog("Learning finished.", true)
+			os.Exit(0)
+		}
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
 }

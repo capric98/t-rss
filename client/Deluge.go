@@ -357,7 +357,7 @@ func (c *DeType) Add(data []byte, name string) error {
 	m := make(map[interface{}]interface{})
 	//m["filename"] = name
 	m["download_location"] = "/home/Downloads/"
-	c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(m))
+	c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(nil))
 	d, e := c.recvResp()
 	if e != nil {
 		fmt.Println(e)
