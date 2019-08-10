@@ -180,7 +180,7 @@ func runTask(t TaskType) {
 		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))
 		if Learn {
 			LevelPrintLog("Learning finished.", true)
-			os.Exit(0)
+			return
 		}
 		time.Sleep(time.Duration(t.Interval) * time.Second)
 	}
