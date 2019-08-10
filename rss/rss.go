@@ -21,8 +21,15 @@ type RssRespType struct {
 	GUID        string
 }
 
-func fetch(rurl string, client *http.Client) ([]RssRespType, error) {
-	resp, err := client.Get(rurl)
+func fetch(rurl string, client *http.Client, cookie string) ([]RssRespType, error) {
+	req, err := http.NewRequest("GET", rurl, nil)
+	if err != nil {
+		return nil, err
+	}
+	if cookie != "" {
+		req.Header.Add("Cookie", cookie)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +45,8 @@ func fetch(rurl string, client *http.Client) ([]RssRespType, error) {
 		Rresp[i] = RssRespType{
 			Title:       v.Title,
 			Description: html.UnescapeString(v.Description),
-			Date: v.Published,
-			GUID: v.GUID,
+			Date:        v.Published,
+			GUID:        v.GUID,
 		}
 		if v.Enclosures != nil {
 			tmp, err := strconv.Atoi(v.Enclosures[0].Length)

@@ -41,13 +41,19 @@ func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	return false
 }
 
-func saveItem(r RssRespType, t TaskType) {
-	nClient := http.Client{
-		Timeout: time.Duration(10 * time.Second),
+func saveItem(r RssRespType, t TaskType, Client *http.Client) {
+	req, err := http.NewRequest("GET", r.DURL, nil)
+	if err != nil {
+		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
+		return
 	}
+	if t.Cookie != "" {
+		req.Header.Add("Cookie", t.Cookie)
+	}
+
 	startT := time.Now()
 
-	resp, err := nClient.Get(r.DURL)
+	resp, err := Client.Do(req)
 	if err != nil {
 		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
 		return
@@ -122,7 +128,7 @@ func runTask(t TaskType) {
 		LevelPrintLog(fmt.Sprintf("Run task: %s.\n", t.TaskName), true)
 		startT := time.Now()
 
-		Rresp, err := fetch(t.RSSLink, &client)
+		Rresp, err := fetch(t.RSSLink, &client, t.Cookie)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err), true)
 			time.Sleep(time.Duration(t.Interval) * time.Second)
@@ -168,7 +174,7 @@ func runTask(t TaskType) {
 			LevelPrintLog(fmt.Sprintf("%s: Accept item \"%s\"\n", t.TaskName, v.Title), true)
 			acCount++
 
-			go saveItem(v, t)
+			go saveItem(v, t, &client)
 
 		}
 		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))

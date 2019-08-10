@@ -139,6 +139,8 @@ func parseSettings(data []byte) []TaskType {
 				T[n].Strict = v.(bool)
 			case "interval":
 				T[n].Interval = v.(int)
+			case "cookie":
+				T[n].Cookie = v.(string)
 			default:
 				log.Printf("Caution: Unknown config path: %s\n", k.(string))
 			}
