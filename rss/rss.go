@@ -35,19 +35,21 @@ func fetch(rurl string, client *http.Client) ([]RssRespType, error) {
 	}
 	Rresp := make([]RssRespType, len(rssFeed.Items))
 	for i, v := range rssFeed.Items {
-		tmp, err := strconv.Atoi(v.Enclosures[0].Length)
-		if err != nil {
-			tmp = 0
-		}
 		Rresp[i] = RssRespType{
 			Title:       v.Title,
 			Description: html.UnescapeString(v.Description),
-			//Author:      v.Author.Name,
-			//Categories:  v.Categories,
-			DURL:   v.Enclosures[0].URL,
-			Length: int64(tmp),
-			Date:   v.Published,
-			GUID:   v.GUID,
+			Date: v.Published,
+			GUID: v.GUID,
+		}
+		if v.Enclosures != nil {
+			tmp, err := strconv.Atoi(v.Enclosures[0].Length)
+			if err != nil {
+				tmp = 0
+			}
+			Rresp[i].DURL = v.Enclosures[0].URL
+			Rresp[i].Length = int64(tmp)
+		} else {
+			Rresp[i].DURL = v.Link
 		}
 		if v.Author != nil {
 			Rresp[i].Author = v.Author.Name

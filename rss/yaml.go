@@ -55,6 +55,21 @@ func configCheck(ts []TaskType) []TaskType {
 	return ts
 }
 
+func compileReg(r interface{}) (*regexp.Regexp, error) {
+	var re *regexp.Regexp
+	var err error
+	switch r.(type) {
+	case string:
+		re, err = regexp.Compile(r.(string))
+		return re, err
+	case int:
+		re, err = regexp.Compile(string(r.(int)))
+		return re, err
+	default:
+		return re, fmt.Errorf("Warning: regexp should be string rather than %T.\n", r)
+	}
+}
+
 func parseSettings(data []byte) []TaskType {
 	m := make(map[interface{}]interface{})
 	err := yaml.Unmarshal(data, &m)
@@ -86,18 +101,18 @@ func parseSettings(data []byte) []TaskType {
 
 				if tmp := v.(map[interface{}]interface{})["accept"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
-						re, err := regexp.Compile(r.(string))
-						if err != nil {
-							log.Fatalf("Panic: %v\n", err)
+						re, rerr := compileReg(r)
+						if rerr != nil {
+							log.Fatal(rerr)
 						}
 						T[n].AccRegexp = append(T[n].AccRegexp, re)
 					}
 				}
 				if tmp := v.(map[interface{}]interface{})["reject"]; tmp != nil {
 					for _, r := range tmp.([]interface{}) {
-						re, err := regexp.Compile(r.(string))
-						if err != nil {
-							log.Fatalf("Panic: %v\n", err)
+						re, rerr := compileReg(r)
+						if rerr != nil {
+							log.Fatal(rerr)
 						}
 						T[n].RjcRegexp = append(T[n].RjcRegexp, re)
 					}
