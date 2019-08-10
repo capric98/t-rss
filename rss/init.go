@@ -41,7 +41,7 @@ func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 	return false
 }
 
-func saveItem(r RssRespType, t TaskType, Client *http.Client) {
+func saveItem(r RssRespType, t TaskType, Client *http.Client, wg *sync.WaitGroup) {
 	req, err := http.NewRequest("GET", r.DURL, nil)
 	if err != nil {
 		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
@@ -110,17 +110,18 @@ func saveItem(r RssRespType, t TaskType, Client *http.Client) {
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
 
-	if !TestOnly {
-		if f, err := os.Create(CDir + r.GUID); err != nil {
-			LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
-		} else {
-			f.Close()
-		}
-		// Under test only mode, we do not create history file.
+	if f, err := os.Create(CDir + r.GUID); err != nil {
+		LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
+	} else {
+		f.Close()
 	}
+	if Learn {
+		wg.Done()
+	}
+	// Under test only mode, we do not create history file.
 }
 
-func runTask(t TaskType) {
+func runTask(t TaskType, wg *sync.WaitGroup) {
 	client := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
@@ -174,12 +175,15 @@ func runTask(t TaskType) {
 			LevelPrintLog(fmt.Sprintf("%s: Accept item \"%s\"\n", t.TaskName, v.Title), true)
 			acCount++
 
-			go saveItem(v, t, &client)
-
+			if Learn {
+				wg.Add(1)
+			}
+			go saveItem(v, t, &client, wg)
 		}
 		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))
 		if Learn {
 			LevelPrintLog("Learning finished.", true)
+			wg.Done()
 			return
 		}
 		time.Sleep(time.Duration(t.Interval) * time.Second)
@@ -225,6 +229,8 @@ func Init() {
 	}
 
 	qsignal := make(chan error, 2)
+	var wg sync.WaitGroup
+	done := make(chan bool)
 	go func() {
 		c := make(chan os.Signal, 10) // bufferd
 		signal.Notify(c, os.Interrupt)
@@ -232,10 +238,20 @@ func Init() {
 	}()
 
 	for _, t := range taskList {
-		go runTask(t)
+		wg.Add(1)
+		go runTask(t, &wg)
 	}
 	go cleanDaemon()
-	<-qsignal
-	LevelPrintLog(fmt.Sprintf("Receive signal 2, quit the program.\n"), true)
+	go func() {
+		wg.Wait()
+		done <- true
+	}()
+
+	select {
+	case <-qsignal:
+		LevelPrintLog(fmt.Sprintf("Receive signal 2, quit the program.\n"), true)
+	case <-done:
+		LevelPrintLog(fmt.Sprintf("All task goroutines quit.\n"), true)
+	}
 	LevelPrintLog(fmt.Sprintf("Bye.\n"), true)
 }
