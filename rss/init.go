@@ -88,9 +88,9 @@ func saveItem(r RssRespType, t TaskType, Client *http.Client, wg *sync.WaitGroup
 				switch v.Name {
 				case "qBittorrent":
 					if ec != 0 {
-						_ = v.Client.(client.QBType).Init()
+						_ = v.Client.(*client.QBType).Init()
 					} // In case of the session timeout, reinitiallize it.
-					err = v.Client.(client.QBType).Add(body, filename)
+					err = v.Client.(*client.QBType).Add(body, filename)
 				case "Deluge":
 					err = v.Client.(*client.DeType).Add(body, filename)
 				}

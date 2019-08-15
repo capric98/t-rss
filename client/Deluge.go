@@ -62,7 +62,7 @@ func Test() {
 	e := rencode.NewEncoder(&buf)
 	var dict rencode.Dictionary
 	dict.Add("client_version", "deluge-client")
-	e.Encode(dict)
+	_ = e.Encode(dict)
 	fmt.Printf("%+q\n", buf.String())
 }
 
@@ -357,7 +357,7 @@ func (c *DeType) Add(data []byte, name string) error {
 	m := make(map[interface{}]interface{})
 	//m["filename"] = name
 	m["download_location"] = "/home/Downloads/"
-	c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(nil))
+	_ = c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(nil))
 	d, e := c.recvResp()
 	if e != nil {
 		fmt.Println(e)
