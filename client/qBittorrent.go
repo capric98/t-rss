@@ -59,7 +59,7 @@ func (c *QBType) Init() error {
 		Jar:     cookieJar,
 	}
 
-	if isPrivateURL(c.settings["host"]) {
+	if c.settings["password"] == "" && isPrivateURL(c.settings["host"]) {
 		log.Println("qBittorrent client: You do not set username or password.")
 		log.Println("Please make sure the client is running on local network, and make sure you have enabled no authentication for local user.")
 		return nil
