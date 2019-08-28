@@ -54,11 +54,26 @@ func saveItem(r RssRespType, t TaskType, Client *http.Client, wg *sync.WaitGroup
 	startT := time.Now()
 
 	resp, err := Client.Do(req)
+	for try := 0; try < 3; {
+		if err == nil && resp.StatusCode == 200 {
+			break
+		}
+		if err == nil {
+			resp.Body.Close()
+		} // StatusCode != 200
+		time.Sleep(200 * time.Millisecond)
+		resp, err = Client.Do(req)
+		try++
+	}
 	if err != nil {
 		LevelPrintLog(fmt.Sprintf("%v\n", err), true)
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		LevelPrintLog(fmt.Sprintf("Item \"%s\" met status code %d.", r.Title, resp.StatusCode), true)
+		return
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
