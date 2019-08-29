@@ -5,7 +5,7 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/capric98/GoRSS/client"
+	"github.com/capric98/t-rss/client"
 	"gopkg.in/yaml.v2"
 )
 
