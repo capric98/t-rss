@@ -33,4 +33,5 @@ func main() {
 	// }()
 
 	rss.Init()
+	rss.NInit()
 }

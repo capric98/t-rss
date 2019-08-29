@@ -1,153 +1,91 @@
 package rss
 
 import (
-	"fmt"
 	"log"
 	"regexp"
 
-	"github.com/capric98/t-rss/client"
 	"gopkg.in/yaml.v2"
 )
 
-// ClientType  Add to client type.
-type ClientType = client.ClientType
+type confYaml struct {
+	RSSLink     string `yaml:"rss"`
+	Strict      bool   `yaml:"strict"`
+	Interval    int    `yaml:"interval"`
+	Download_to string `yaml:"download_to"`
 
-// TaskType  Task structure.
-type TaskType struct {
-	TaskName  string
-	RSSLink   string
-	Interval  int
-	ExeAtTime []int
-	DownPath  string
-	Client    []ClientType
-	Cookie    string
-	MaxSize   int64
-	MinSize   int64
-	Strict    bool
-	AccRegexp []*regexp.Regexp
-	RjcRegexp []*regexp.Regexp
+	Content_size struct {
+		Min string `yaml:"min"`
+		Max string `yaml:"max"`
+	} `yaml:"content_size"`
+	Regexp struct {
+		Accept []string `yaml:"accept"`
+		Reject []string `yaml:"reject"`
+	} `yaml:"regexp"`
+	Client struct {
+		Qb map[string]interface{} `yaml:"qBittorrent"`
+		De map[string]interface{} `yaml:"Deluge"`
+	} `yaml:"client"`
 }
 
-func parseClientSettings(s map[interface{}]interface{}) []ClientType {
-	ps := make([]ClientType, 0)
-	for k, v := range s {
-		switch k.(string) {
-		case "qBittorrent":
-			ps = append(ps, client.NewqBclient(v.(map[interface{}]interface{})))
-		case "Deluge":
-			ps = append(ps, client.NewDeClient(v.(map[interface{}]interface{})))
-		default:
-		}
+type Config struct {
+	TaskName    string
+	RSSLink     string
+	Strict      bool
+	Interval    int
+	Download_to string
+
+	Min, Max       int64
+	Accept, Reject []*regexp.Regexp
+	Client         []string
+}
+
+func convert(s string) int64 {
+	return 0
+}
+
+func regcompile(s string) *regexp.Regexp {
+	r, e := regexp.Compile(s)
+	if e != nil {
+		log.Println("Failed to build regexp:", s)
+		log.Fatal(e)
 	}
-	return ps
+	return r
 }
 
-func configCheck(ts []TaskType) []TaskType {
-	for i := 0; i < len(ts); i++ {
-		if ts[i].Interval <= 0 {
-			log.Printf("Task %s misses Interval, no bother to set it to default 60s.\n", ts[i].TaskName)
-			ts[i].Interval = 60
-		}
-		if ts[i].Interval <= 3 {
-			log.Printf("Caution: Task %s has too low Interval of %ds\n", ts[i].TaskName, ts[i].Interval)
-		}
-	}
-	return ts
-}
-
-func compileReg(r interface{}) (*regexp.Regexp, error) {
-	var re *regexp.Regexp
-	var err error
-	switch r.(type) {
-	case string:
-		re, err = regexp.Compile(r.(string))
-		return re, err
-	case int:
-		re, err = regexp.Compile(string(r.(int)))
-		return re, err
-	default:
-		return re, fmt.Errorf("Warning: regexp should be string rather than %T.\n", r)
-	}
-}
-
-func parseSettings(data []byte) []TaskType {
-	m := make(map[interface{}]interface{})
-	err := yaml.Unmarshal(data, &m)
-	if err != nil {
+func parse(data []byte) (conf []Config) {
+	m := make(map[string]confYaml)
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		log.Prinln("Failed to parse config file:")
 		log.Fatal(err)
 		return nil
 	}
 
-	T := make([]TaskType, len(m))
-	n := 0
-	//fmt.Printf("--- m:\n%v\n", m)
-	for tname, task := range m {
-		T[n].TaskName = tname.(string)
-		T[n].MinSize = -1
-		T[n].MaxSize, _ = client.SpeedToInt("2000TB") // 2000TiB+
-		for k, v := range task.(map[interface{}]interface{}) {
-			if v == nil {
-				log.Fatal(fmt.Errorf("%s: \"%s\" config is empty!\n", Config, k.(string)))
-			}
-			switch k.(string) {
-			case "rss":
-				T[n].RSSLink = v.(string)
-			case "download_to":
-				T[n].DownPath = v.(string)
-			case "client":
-				T[n].Client = parseClientSettings(v.(map[interface{}]interface{}))
-			case "regexp":
-				// We'd better check the validity of regexps after...
-
-				if tmp := v.(map[interface{}]interface{})["accept"]; tmp != nil {
-					for _, r := range tmp.([]interface{}) {
-						re, rerr := compileReg(r)
-						if rerr != nil {
-							log.Fatal(rerr)
-						}
-						T[n].AccRegexp = append(T[n].AccRegexp, re)
-					}
-				}
-				if tmp := v.(map[interface{}]interface{})["reject"]; tmp != nil {
-					for _, r := range tmp.([]interface{}) {
-						re, rerr := compileReg(r)
-						if rerr != nil {
-							log.Fatal(rerr)
-						}
-						T[n].RjcRegexp = append(T[n].RjcRegexp, re)
-					}
-				}
-			case "content_size":
-				if tmp := v.(map[interface{}]interface{})["max"]; tmp != nil {
-					switch tmp.(type) {
-					case int:
-						T[n].MaxSize = int64(tmp.(int)) * 1024 * 1024
-					case string:
-						T[n].MaxSize, _ = client.SpeedToInt(tmp.(string))
-					}
-
-				}
-				if tmp := v.(map[interface{}]interface{})["min"]; tmp != nil {
-					switch tmp.(type) {
-					case int:
-						T[n].MinSize = int64(tmp.(int)) * 1024 * 1024
-					case string:
-						T[n].MinSize, _ = client.SpeedToInt(tmp.(string))
-					}
-				}
-			case "strict":
-				T[n].Strict = v.(bool)
-			case "interval":
-				T[n].Interval = v.(int)
-			case "cookie":
-				T[n].Cookie = v.(string)
-			default:
-				log.Printf("Caution: Unknown config path: %s\n", k.(string))
+	conf = make([]Config, 0)
+	for k, v := range m {
+		tmp := Config{
+			TaskName:    k,
+			RSSLink:     v.RSSLink,
+			Strict:      v.Strict,
+			Interval:    v.Interval,
+			Download_to: v.Download_to,
+			Min:         convert(v.Content_size.Min),
+			Max:         convert(v.Content_size.Max),
+		}
+		if tmp.Max == 0 {
+			tmp.Max = 0x7FFFFFFFFFFFFFFF
+		}
+		if v.Regexp.Accept != nil {
+			tmp.Accept = make([]*regexp.Regexp, len(v.Regexp.Accept))
+			for i, r := range v.Regexp.Accept {
+				tmp.Accept[i] = regcompile(r)
 			}
 		}
-		//fmt.Println(T[n].MinSize, T[n].MaxSize)
-		n++
+		if v.Regexp.Reject != nil {
+			tmp.Reject = make([]*regexp.Regexp, len(v.Regexp.Reject))
+			for i, r := range v.Regexp.Reject {
+				tmp.Accept[i] = regcompile(r)
+			}
+		}
 	}
-
-	return configCheck(T)
+	return
 }
