@@ -32,6 +32,5 @@ func main() {
 	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
 	// }()
 
-	rss.Init()
 	rss.NInit()
 }

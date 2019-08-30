@@ -6,6 +6,12 @@ import (
 	"unicode"
 )
 
+type Client interface {
+	Init() error
+	Add(t []byte) error
+	Name() string
+}
+
 type ClientType struct {
 	Name   string
 	Client interface{}

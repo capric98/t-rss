@@ -61,6 +61,14 @@ func fetch(rurl string, client *http.Client, cookie string) ([]RssRespType, erro
 		if v.Author != nil {
 			Rresp[i].Author = v.Author.Name
 		}
+		if v.GUID == "" {
+			v.GUID = NameRegularize(v.Title)
+			if len(v.GUID) > 200 {
+				v.GUID = v.GUID[:200]
+			}
+		} else {
+			v.GUID = NameRegularize(v.GUID)
+		} // Just in case.
 	}
 	return Rresp, nil
 }
