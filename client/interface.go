@@ -2,20 +2,25 @@ package client
 
 import (
 	"fmt"
-	"strconv"
 	"unicode"
 )
+
+type Client interface {
+	Add(b []byte, name string) error
+	Name() string
+	Label() string
+}
 
 type ClientType struct {
 	Name   string
 	Client interface{}
 }
 
-func SpeedToInt(s string) (int64, error) {
-	return strconv.ParseInt(speedParse(s), 10, 64)
-}
+// func SpeedToInt(s string) (int64, error) {
+// 	return strconv.ParseInt(speedParse(s), 10, 64)
+// }
 
-func speedParse(s string) string {
+func UConvert(s string) string {
 	if s == "" {
 		return ""
 	}

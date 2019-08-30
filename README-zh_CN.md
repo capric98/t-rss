@@ -22,7 +22,8 @@ Name0:                             # 任务名称，随意取
   interval: 10                     #*RSS间隔，单位秒，非负整数，默认60s
   download_to: "/home/WatchDir/"   #*种子文件保存目录，可不设置
   client:                          #*自动添加至以下客户端，可不设置
-    qBittorrent:
+    Hetzner:                       # 一个任意的标签，不能是纯数字，不可重复
+      type: qBittorrent            # 需要指定客户端类型
       host: http://127.0.0.1:8080  # webui地址，http/https不可少，可以是远程地址
       username: admin              # webui用户名
       password: adminadmin         # webui密码
@@ -30,7 +31,7 @@ Name0:                             # 任务名称，随意取
       upLimit: "10M"               #*上传速度限制，注意双引号，单位可以是M/MB等等。。
       paused: "true"               #*是否以暂停状态添加种子，注意双引号不可少
       savepath: "/home/Downloads/" #*下载目录
-    qBittorrent:                   #*可以有多个客户端
+    Online:                        #*可以有多个客户端
       ...
     #因为一些比较呆的原因，暂时不支持直接往deluge添加，请使用deluge的监视目录功能添加种子文件
 Name1:                             #*一个配置文件里可以有多个任务

@@ -17,6 +17,8 @@ import (
 type QBType struct {
 	client   *http.Client
 	settings map[string]string
+	name     string
+	label    string
 }
 
 var (
@@ -24,43 +26,64 @@ var (
 	privateIPBlocks []*net.IPNet
 )
 
-func NewqBclient(m map[interface{}]interface{}) ClientType {
-	var nc ClientType
-	nc.Name = "qBittorrent"
+func (c *QBType) Name() string {
+	return c.name
+}
+func (c *QBType) Label() string {
+	return c.label
+}
 
-	nc.Client = &QBType{
+func NewqBclient(key string, m map[string]interface{}) *QBType {
+	nc := &QBType{
 		client:   nil,
 		settings: make(map[string]string),
+		name:     "qBittorrent",
+		label:    key,
 	}
+
 	for k, v := range m {
-		nc.Client.(*QBType).settings[k.(string)] = v.(string)
+		switch v.(type) {
+		case string:
+			nc.settings[k] = v.(string)
+		case bool:
+			if v.(bool) {
+				nc.settings[k] = "true"
+			} else {
+				nc.settings[k] = "false"
+			}
+		case int:
+			nc.settings[k] = fmt.Sprintf("%d", v.(int))
+		}
 	} // Copy settings.
 
-	nc.Client.(*QBType).settings["dlLimit"] = speedParse(nc.Client.(*QBType).settings["dlLimit"])
-	nc.Client.(*QBType).settings["upLimit"] = speedParse(nc.Client.(*QBType).settings["upLimit"])
+	if length := len(nc.settings["host"]); nc.settings["host"][length-1] == '/' {
+		nc.settings["host"] = nc.settings["host"][:length-1]
+	}
+	nc.settings["dlLimit"] = UConvert(nc.settings["dlLimit"])
+	nc.settings["upLimit"] = UConvert(nc.settings["upLimit"])
 
 	fcount := 1
 	initPrivateIP()
-	err := nc.Client.(*QBType).Init()
+	err := nc.init()
 	for err != nil {
 		fcount++
 		if fcount == 3 {
 			log.Fatal(err)
 		}
-		err = nc.Client.(*QBType).Init()
+		err = nc.init()
 	}
 	return nc
 }
 
-func (c *QBType) Init() error {
+func (c *QBType) init() error {
 	cookieJar, _ := cookiejar.New(nil)
 	c.client = &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: 30 * time.Second,
 		Jar:     cookieJar,
 	}
 
 	if c.settings["password"] == "" && isPrivateURL(c.settings["host"]) {
-		log.Println("qBittorrent client: You do not set username or password.")
+		log.Println(c.label + " qBittorrent client: You do not set username or password.")
 		log.Println("Please make sure the client is running on local network, and make sure you have enabled no authentication for local user.")
 		return nil
 	}
@@ -70,14 +93,35 @@ func (c *QBType) Init() error {
 		"password": {c.settings["password"]},
 	})
 	if err != nil {
-		log.Printf("Failed to initialize client: %v\n", err)
+		log.Printf("Failed to initialize %s client: %v\n", c.label, err)
 		return err
 	}
 	resp.Body.Close()
 	return nil
 }
 
-func (c *QBType) Add(data []byte, filename string) error {
+func (c *QBType) Add(data []byte, filename string) (e error) {
+	defer func() {
+		if p := recover(); p != nil {
+			e = p.(error)
+		}
+	}() // In case of init fails.
+
+	var try int
+	for {
+		if e = c.call(data, filename); e == nil {
+			return
+		} else {
+			try++
+			if try == 3 {
+				return
+			}
+			_ = c.init()
+		}
+	}
+}
+
+func (c *QBType) call(data []byte, filename string) error {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
@@ -118,7 +162,7 @@ func (c *QBType) Add(data []byte, filename string) error {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	if string(body) != "Ok." {
-		return fmt.Errorf("webui returns \"" + string(body) + "\" rather than \"Ok.\"")
+		return fmt.Errorf(c.label + "'s webui returns \"" + string(body) + "\" rather than \"Ok.\"")
 	}
 	return nil
 }

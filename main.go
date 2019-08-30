@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/capric98/GoRSS/rss"
+	"github.com/capric98/t-rss/rss"
 )
 
 // import _ "net/http/pprof"
@@ -18,7 +18,7 @@ var (
 
 func flagInit() {
 	rss.DMode = *DMode
-	rss.Config = *Config
+	rss.ConfigPath = *Config
 	rss.TestOnly = *TestOnly
 	rss.CDir = *CDir
 	rss.Learn = *Learn
