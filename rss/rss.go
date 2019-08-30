@@ -2,8 +2,10 @@ package rss
 
 import (
 	"html"
+	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 
@@ -46,7 +48,7 @@ func fetch(rurl string, client *http.Client, cookie string) ([]RssRespType, erro
 			Title:       v.Title,
 			Description: html.UnescapeString(v.Description),
 			Date:        v.Published,
-			GUID:        v.GUID,
+			GUID:        NameRegularize(v.GUID),
 		}
 		if v.Enclosures != nil {
 			tmp, err := strconv.Atoi(v.Enclosures[0].Length)
@@ -90,25 +92,15 @@ func NameRegularize(name string) string {
 }
 
 func GetFileInfo(furl string, headermap http.Header) string {
-	var urlname, headername = "", ""
-	for p := len(furl) - 1; furl[p] != '/'; p-- {
-		urlname = string(furl[p]) + urlname
-	}
+	var urlname, headername = path.Base(furl), ""
+
 	if urlname == "" {
-		urlname = "download" // In case of a blank name.
+		urlname = "download.torrent" // In case of a blank name.
 	}
+
 	if headermap["Content-Disposition"] != nil {
-		headername = headermap["Content-Disposition"][0]
-		headername = headername[strings.Index(headername, "filename=")+9:]
-		for headername[0] == ' ' || headername[0] == '"' {
-			headername = headername[1:]
-		}
-		if strings.Contains(headername, ";") {
-			headername = headername[:strings.Index(headername, ";")]
-		}
-		for headername[len(headername)-1] == ' ' || headername[len(headername)-1] == '"' {
-			headername = headername[:len(headername)-1]
-		}
+		_, params, _ := mime.ParseMediaType(headermap["Content-Disposition"][0])
+		headername = params["filename"]
 	}
 	if headername == "" {
 		headername = urlname // In case of a blank name.

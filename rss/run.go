@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"sync"
 	"time"
 
 	"github.com/capric98/t-rss/bencode"
-	"github.com/capric98/t-rss/client"
 )
 
 func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
@@ -80,8 +80,29 @@ func (r RssRespType) getTorrent(t Config, c *http.Client) ([]byte, string, error
 	return body, GetFileInfo(r.DURL, resp.Header), nil
 }
 
-func (r RssRespType) save(data []byte, path string, filename string, caller []client.Client) {
+func savehistory(path string) {
+	if f, err := os.Create(path); err != nil {
+		LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
+	} else {
+		f.Close()
+	}
+}
+
+func (r RssRespType) save(task Config, fetcher *http.Client) {
 	startT := time.Now()
+
+	data, filename, err := r.getTorrent(task, fetcher)
+	path := task.Download_to
+	if err != nil {
+		LevelPrintLog(fmt.Sprintf("%v", err), true)
+		return
+	}
+	if r.Length == 0 {
+		if pass, tlen := checkTLength(data, task.Min, task.Max); !pass {
+			LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.\n", task.TaskName, r.Title), true)
+			LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", tlen, task.Min, task.Max), false)
+		}
+	}
 
 	if TestOnly {
 		PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
@@ -94,26 +115,21 @@ func (r RssRespType) save(data []byte, path string, filename string, caller []cl
 			LevelPrintLog(fmt.Sprintf("Warning: %v\n", err), true)
 			return
 		}
-		LevelPrintLog(fmt.Sprintf("Item \"%s\" is saved as \"%s\"\n", r.Title, filename), false)
+		LevelPrintLog(fmt.Sprintf("Item is saved to \"%s\"\n", filename), false)
 	}
 
 	// Add file to client.
-	if caller != nil && !Learn {
-		for _, v := range caller {
-			e := v.Add(data)
+	if task.Client != nil && !Learn {
+		for _, v := range task.Client {
+			e := v.Add(data, filename)
 			if e != nil {
-				LevelPrintLog(fmt.Sprintf("Failed to add item \"%s\" to %s client with message: \"%v\".\n", r.Title, v.Name(), e), true)
+				LevelPrintLog(fmt.Sprintf("Failed to add item \"%s\" to %s's %s client with message: \"%v\".\n", r.Title, v.Label(), v.Name(), e), true)
 				return
 			}
 		}
 	}
 	PrintTimeInfo(fmt.Sprintf("Item \"%s\" done.", r.Title), time.Since(startT))
-
-	if f, err := os.Create(CDir + r.GUID); err != nil {
-		LevelPrintLog(fmt.Sprintf("Warning: %v", err), true)
-	} else {
-		f.Close()
-	}
+	savehistory(CDir + r.GUID)
 }
 
 func runTask(t Config, signal chan struct{}, wg *sync.WaitGroup) {
@@ -156,40 +172,36 @@ func runTask(t Config, signal chan struct{}, wg *sync.WaitGroup) {
 			}
 
 			// Check content_size.
-			if !(v.Length > t.Min && v.Length < t.Max) {
+			if !(v.Length >= t.Min && v.Length <= t.Max) {
 				LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title), true)
 				LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, t.Min, t.Max), false)
 				rjCount++
 				continue
 			}
-			data, filename, err := v.getTorrent(t, &fetcher)
-			if err != nil {
-				LevelPrintLog(fmt.Sprintf("%s: \"%v\"\n", t.TaskName, err), true)
-				continue
-			}
-			if v.Length == 0 {
-				if pass, tlen := checkTLength(data, t.Min, t.Max); !pass {
-					LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", t.TaskName, v.Title), true)
-					LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", tlen, t.Min, t.Max), false)
-				}
-			}
 
 			LevelPrintLog(fmt.Sprintf("%s: Accept item \"%s\"\n", t.TaskName, v.Title), true)
 			acCount++
 
-			go v.save(data, t.Download_to, filename, t.Client)
+			if Learn {
+				savehistory(CDir + v.GUID)
+			} else {
+				go v.save(t, &fetcher)
+			}
 		}
 		PrintTimeInfo(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", t.TaskName, acCount, rjCount), time.Since(startT))
-	}
-	if Learn {
-		LevelPrintLog("Learning finished.", true)
+		if Learn {
+			return
+		}
+		time.Sleep(t.Interval)
 	}
 }
 
 func tick(signal chan struct{}) {
 	if Learn {
 		signal <- struct{}{}
+		runtime.Gosched()
 		close(signal)
+		return
 	}
 	for {
 		signal <- struct{}{}

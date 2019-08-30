@@ -20,7 +20,7 @@ var (
 	Learn      bool
 )
 
-func NInit() {
+func Init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if DMode {
@@ -73,8 +73,7 @@ func NInit() {
 
 	for _, t := range taskList {
 		wg.Add(1)
-		//fmt.Println(t)
-		s := make(chan struct{}, 2)
+		s := make(chan struct{})
 		go runTask(t, s, &wg)
 		go tick(s)
 		//go runTask(t, &wg)

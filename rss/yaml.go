@@ -10,6 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type clientConfig = map[string]interface{}
+
 type confYaml struct {
 	RSSLink     string `yaml:"rss"`
 	Cookie      string `yaml:"cookie"`
@@ -25,10 +27,7 @@ type confYaml struct {
 		Accept []string `yaml:"accept"`
 		Reject []string `yaml:"reject"`
 	} `yaml:"regexp"`
-	Client struct {
-		Qb map[string]interface{} `yaml:"qBittorrent"`
-		De map[string]interface{} `yaml:"Deluge"`
-	} `yaml:"client"`
+	Client map[string]clientConfig `yaml:"client"`
 }
 
 type Config struct {
@@ -80,6 +79,19 @@ func regcompile(s string) *regexp.Regexp {
 	return r
 }
 
+func parseClient(raw map[string]clientConfig) []client.Client {
+	var list = make([]client.Client, 0, 1)
+	for k, v := range raw {
+		if v["type"].(string) == "qBittorrent" {
+			list = append(list, client.NewqBclient(k, v))
+		}
+		//if v.De != nil {
+		//	list = append(list, client.NewDeClient(v.De))
+		//}
+	}
+	return list
+}
+
 func parse(data []byte) (conf []Config) {
 	m := make(map[string]confYaml)
 	if err := yaml.Unmarshal(data, &m); err != nil {
@@ -112,9 +124,11 @@ func parse(data []byte) (conf []Config) {
 		if v.Regexp.Reject != nil {
 			tmp.Reject = make([]*regexp.Regexp, len(v.Regexp.Reject))
 			for i, r := range v.Regexp.Reject {
-				tmp.Accept[i] = regcompile(r)
+				tmp.Reject[i] = regcompile(r)
 			}
 		}
+		tmp.Client = parseClient(v.Client)
+		conf = append(conf, tmp)
 	}
 	return
 }

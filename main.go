@@ -18,7 +18,7 @@ var (
 
 func flagInit() {
 	rss.DMode = *DMode
-	rss.Config = *Config
+	rss.ConfigPath = *Config
 	rss.TestOnly = *TestOnly
 	rss.CDir = *CDir
 	rss.Learn = *Learn
@@ -32,5 +32,5 @@ func main() {
 	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
 	// }()
 
-	rss.NInit()
+	rss.Init()
 }
