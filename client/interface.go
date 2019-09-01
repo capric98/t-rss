@@ -11,15 +11,6 @@ type Client interface {
 	Label() string
 }
 
-type ClientType struct {
-	Name   string
-	Client interface{}
-}
-
-// func SpeedToInt(s string) (int64, error) {
-// 	return strconv.ParseInt(speedParse(s), 10, 64)
-// }
-
 func UConvert(s string) string {
 	if s == "" {
 		return ""
