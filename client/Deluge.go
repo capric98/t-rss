@@ -108,7 +108,7 @@ func makeDict(args map[interface{}]interface{}) *rencode.Dictionary {
 	var dict rencode.Dictionary
 	if args != nil {
 		for k, v := range args {
-			dict.Add(v, k)
+			dict.Add(k, v)
 		}
 		fmt.Println(dict)
 	}
@@ -355,9 +355,8 @@ func (c *DeType) recvResp() (*rencode.Decoder, error) {
 func (c *DeType) Add(data []byte, name string) error {
 	b64 := base64.StdEncoding.EncodeToString(data)
 	m := make(map[interface{}]interface{})
-	//m["filename"] = name
 	m["download_location"] = "/home/Downloads/"
-	_ = c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList("name", b64), makeDict(nil))
+	_ = c.sendCall(c.version, c.protocolVersion, "core.add_torrent_file", makeList(name, b64), makeDict(m))
 	d, e := c.recvResp()
 	if e != nil {
 		fmt.Println(e)
