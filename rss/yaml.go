@@ -85,9 +85,9 @@ func parseClient(raw map[string]clientConfig) []client.Client {
 		if v["type"].(string) == "qBittorrent" {
 			list = append(list, client.NewqBclient(k, v))
 		}
-		//if v.De != nil {
-		//	list = append(list, client.NewDeClient(v.De))
-		//}
+		if v["type"].(string) == "Deluge" {
+			list = append(list, client.NewDeClient(k, v))
+		}
 	}
 	return list
 }
