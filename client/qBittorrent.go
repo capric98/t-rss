@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/textproto"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type QBType struct {
 	settings map[string]string
 	name     string
 	label    string
+	mu       sync.RWMutex
 }
 
 var (
@@ -39,6 +41,7 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 		settings: make(map[string]string),
 		name:     "qBittorrent",
 		label:    key,
+		mu:       sync.RWMutex{},
 	}
 
 	for k, v := range m {
@@ -76,6 +79,9 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 }
 
 func (c *QBType) init() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cookieJar, _ := cookiejar.New(nil)
 	c.client = &http.Client{
 		Timeout: 30 * time.Second,
@@ -150,7 +156,9 @@ func (c *QBType) call(data []byte, filename string) error {
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
+	c.mu.RLock()
 	resp, err := c.client.Do(req)
+	c.mu.RUnlock()
 	if err != nil {
 		fmt.Println(err)
 		return err

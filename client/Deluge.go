@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"log"
+	"sync"
 	"time"
 
 	"github.com/gdm85/go-rencode"
@@ -18,11 +21,32 @@ type DeType struct {
 	label    string
 	version  int
 	protoVer int
+	mu       sync.Mutex
+}
+
+type reqIDType struct {
+	count int
+	mu    sync.Mutex
 }
 
 var (
-	reqID = make(chan int)
+	reqID    = &reqIDType{}
+	paraList = []string{}
 )
+
+func (c *DeType) Add(data []byte, name string) (e error) {
+	var try int
+	b64 := base64.StdEncoding.EncodeToString(data)
+
+	for try < 3 {
+		e = c.call("core.add_torrent_file", makeList(name, b64), makeDict(c.settings))
+		if e != nil {
+			c.reconnect()
+			continue
+		}
+	}
+	return
+}
 
 func (c *DeType) Name() string {
 	return c.name
@@ -32,63 +56,98 @@ func (c *DeType) Label() string {
 	return c.label
 }
 
-func NewDeClient() *DeType {
+func NewDeClient(key string, m map[string]interface{}) *DeType {
 	var nc = &DeType{
-		name: "Deluge",
+		client:   nil,
+		name:     "Deluge",
+		label:    key,
+		settings: make(map[string]interface{}),
+	}
+
+	for _, para := range paraList {
+		// Speed!
+		nc.settings[para] = m[para]
+	}
+
+	var failcount int
+	var err error
+	for {
+		if err = nc.init(); err == nil {
+			break
+		}
+		failcount++
+		if failcount == 3 {
+			log.Fatal(err)
+		}
 	}
 	return nc
 }
 
-func (c *DeType) sendCall(method string, args rencode.List, kargs rencode.Dictionary) error {
-	rID := <-reqID
-	var b, z bytes.Buffer
-	var reql rencode.List
+func (c *DeType) init() (e error) {
+	defer func() {
+		if p := recover(); p != nil {
+			e = p.(error)
+		}
+	}()
+
+	e = c.detectVersion()
+
+	return
+}
+
+func (c *DeType) call(method string, args rencode.List, kargs rencode.Dictionary) (e error) {
+	defer func() {
+		if p := recover(); p != nil {
+			e = p.(error)
+		}
+	}()
+	return c.sendCall(c.version, c.protoVer, method, args, kargs)
+}
+
+func (c *DeType) sendCall(version int, protoVer int, method string, args rencode.List, kargs rencode.Dictionary) error {
+	rID := reqID.next()
+	var b, z, req bytes.Buffer
+	//var reql rencode.List
 
 	e := rencode.NewEncoder(&b)
-	reql = rencode.NewList(rID, method, args, kargs)
-	if err := e.Encode(rencode.NewList(reql)); err != nil {
+	//reql = rencode.NewList(rID, method, args, kargs)
+	if err := e.Encode(makeList(makeList(rID, method, args, kargs))); err != nil {
 		return err
 	}
 
-	tmp := zlib.NewWriter(&z)
-	_, _ = tmp.Write(b.Bytes())
-	tmp.Close()
+	wzlib := zlib.NewWriter(&z)
+	_, _ = wzlib.Write(b.Bytes())
+	wzlib.Close()
 
-	_ = c.client.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	if c.version == 2 {
-		var req bytes.Buffer
-		switch c.protoVer {
+	if version == 2 {
+		// need to send a header to client
+		switch protoVer {
 		case -1:
 			req.WriteRune('D')
 			_ = binary.Write(&req, binary.BigEndian, int32(z.Len()))
-			_, _ = req.Write(z.Bytes())
-			// fmt.Printf("%+q\n", z.String())
-			if _, err := c.client.Write(req.Bytes()); err != nil {
-				return err
-			}
 		case 1:
-			_ = binary.Write(&req, binary.BigEndian, uint8(c.protoVer))
+			_ = binary.Write(&req, binary.BigEndian, uint8(protoVer))
 			_ = binary.Write(&req, binary.BigEndian, uint32(z.Len()))
-			_, _ = req.Write(z.Bytes())
-			// fmt.Printf("%+q\n", z.String())
-			if _, err := c.client.Write(req.Bytes()); err != nil {
-				return err
-			}
-		}
-	} else {
-		// deluge_Ver == 1
-		fmt.Printf("%+q\n", z.String())
-		if _, err := c.client.Write(z.Bytes()); err != nil {
-			return err
 		}
 	}
+
+	_, _ = req.Write(z.Bytes())
+	// fmt.Printf("%+q\n", z.String())
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_ = c.client.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	if _, err := c.client.Write(req.Bytes()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (c *DeType) detectVersion() error {
-	//_ = c.sendCall(1, -1, "daemon.info", makeList(), makeDict(nil))
-	//_ = c.sendCall(2, -1, "daemon.info", makeList(), makeDict(nil))
-	//_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(1, -1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(2, -1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
 	var buf bytes.Buffer
 
 	time.Sleep(100 * time.Millisecond)
@@ -205,12 +264,12 @@ func (c *DeType) closeSocket() error {
 	return nil
 }
 
-func genReqID(ch chan int) {
-	var num int
-	for {
-		ch <- num
-		num++
-	}
+func (r *reqIDType) next() (rid int) {
+	r.mu.Lock()
+	r.count++
+	rid = r.count
+	r.mu.Unlock()
+	return
 }
 
 func makeList(args ...interface{}) rencode.List {
@@ -221,12 +280,10 @@ func makeList(args ...interface{}) rencode.List {
 	return list
 }
 
-func makeDict(args map[interface{}]interface{}) rencode.Dictionary {
+func makeDict(args map[string]interface{}) rencode.Dictionary {
 	var dict rencode.Dictionary
-	if args != nil {
-		for k, v := range args {
-			dict.Add(k, v)
-		}
+	for k, v := range args {
+		dict.Add(k, v)
 	}
 	return dict
 }
