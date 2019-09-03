@@ -20,6 +20,7 @@ import (
 const (
 	None     = 0
 	WTimeout = 10
+	TimeoutA = 5
 	rpcResp  = 1
 	rpcError = 2
 	rpcEvent = 3
@@ -56,6 +57,7 @@ var (
 	ErrRespIncomplete = errors.New("Expected a longer response than actually got.")
 	ErrUnknownResp    = errors.New("Unknown RPC response.")
 	ErrRPCEvent       = errors.New("Unexpected RPC Event message.")
+	ErrAddFail        = errors.New("Failed to add torrent file after 3 tries.")
 )
 
 func (c *DeType) Add(data []byte, name string) (e error) {
@@ -67,12 +69,20 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 
 	var try int
 	b64 := base64.StdEncoding.EncodeToString(data)
+	//nm := make(map[string]interface{})
+	//nm["filename"] = name
+	//nm["filedump"] = b64
+	//nm["options"] = c.settings
+	//c.settings["options"] = name
 
 	for try < 3 {
-		e = c.call("core.add_torrent_file", makeList(name, b64), makeDict(c.settings))
+		try++
+		e = c.call("core.add_torrent_file", makeList(name, b64, makeDict(c.settings)), makeDict(nil))
+		//  c.call("core.add_torrent_file", makeList(name, b64),makeDict(c.settings))
+		//   └-> THIS WOULD NOT WORK!!!!!!!
+		//       Thank you Deluge!
 		if e != nil {
 			_ = c.init()
-			try++
 			continue
 		}
 
@@ -80,8 +90,10 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 		if e == nil {
 			return
 		}
+		log.Println("Last: ", e)
 	}
-	return
+
+	return ErrAddFail
 }
 
 func (c *DeType) Name() string {
@@ -98,6 +110,8 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 		name:     "Deluge",
 		label:    key,
 		settings: make(map[string]interface{}),
+		user:     m["username"].(string),
+		pass:     m["password"].(string),
 	}
 
 	for _, para := range paraList {
@@ -105,8 +119,12 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 			nc.settings[para] = m[para]
 		}
 	}
-	nc.settings["max_download_speed"] = parseSpeed(nc.settings["max_download_speed"])
-	nc.settings["max_upload_speed"] = parseSpeed(nc.settings["max_upload_speed"])
+	if nc.settings["max_download_speed"] != nil {
+		nc.settings["max_download_speed"] = parseSpeed(nc.settings["max_download_speed"])
+	}
+	if nc.settings["max_upload_speed"] != nil {
+		nc.settings["max_upload_speed"] = parseSpeed(nc.settings["max_upload_speed"])
+	}
 
 	if m["host"] == nil {
 		log.Panicln("Deluge: miss host.")
@@ -134,14 +152,10 @@ func (c *DeType) init() (e error) {
 		}
 	}()
 
-	if c.client == nil {
-		e = c.newConn()
-	} else {
-		e = c.reconnect()
-	}
+	e = c.reconnect()
 
 	e = c.detectVersion()
-	log.Println("Deluge client init:", e)
+	log.Println("Deluge client init with error", e)
 	log.Println("Deluge version:", c.version)
 	log.Println("Protocal version:", c.protoVer)
 
@@ -211,16 +225,16 @@ func (c *DeType) sendCall(version int, protoVer int, method string, args rencode
 func (c *DeType) detectVersion() error {
 	sign := make([]byte, 1)
 
-	c.mu.Lock()
 	now := time.Now()
 	_ = c.sendCall(1, None, "daemon.info", makeList(), makeDict(nil))
 	_ = c.sendCall(2, None, "daemon.info", makeList(), makeDict(nil))
 	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
 
+	c.mu.Lock()
 	_ = c.client.SetDeadline(time.Now().Add(1 * time.Second))
 	_, err := c.client.Read(sign)
 
-	c.rttx4 = time.Since(now)
+	c.rttx4 = time.Since(now) + (TimeoutA * time.Second)
 	c.mu.Unlock()
 
 	if err != nil {
@@ -228,6 +242,7 @@ func (c *DeType) detectVersion() error {
 	}
 
 	defer func() {
+		c.mu.Lock()
 		garbage := make([]byte, 1)
 		_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
 		_, e := c.client.Read(garbage)
@@ -235,6 +250,7 @@ func (c *DeType) detectVersion() error {
 			_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
 			_, e = c.client.Read(garbage)
 		}
+		c.mu.Unlock()
 	}() // Clean TCP buf.
 
 	if sign[0] == byte('D') {
@@ -320,7 +336,10 @@ func (c *DeType) recvResp() (e error) {
 	switch msgType {
 	case rpcResp:
 	case rpcError:
-		e = errors.New("rpcError - Type: " + rValue[2].(string) + " & Message: " + rValue[3].(string))
+		errorlist := rValue[2].(rencode.List)
+		errs := errorlist.Values()
+		msg := string(errs[0].([]uint8)) + "\n" + string(errs[1].([]uint8)) + "\n" + string(errs[2].([]uint8))
+		e = errors.New("rpcError with message:\n" + msg)
 	case rpcEvent:
 		e = ErrRPCEvent
 	default:
@@ -341,9 +360,10 @@ func (c *DeType) newConn() (e error) {
 }
 
 func (c *DeType) reconnect() error {
-	if err := c.client.Close(); err != nil {
-		return err
+	if c.client != nil {
+		_ = c.client.Close()
 	}
+
 	return c.newConn()
 }
 
