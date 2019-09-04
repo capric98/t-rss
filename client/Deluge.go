@@ -20,14 +20,13 @@ import (
 const (
 	None     = 0
 	WTimeout = 10
-	TimeoutA = 5
+	TimeoutA = 1000 //(ms)
 	rpcResp  = 1
 	rpcError = 2
 	rpcEvent = 3
 )
 
 type DeType struct {
-	client      *tls.Conn
 	settings    map[string]interface{}
 	host        string
 	name, label string
@@ -35,8 +34,6 @@ type DeType struct {
 	version     int
 	protoVer    int
 	rttx4       time.Duration
-	wmu         sync.Mutex
-	rmu         sync.Mutex
 }
 
 type reqIDType struct {
@@ -73,20 +70,23 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 
 	for try < 3 {
 		try++
-		e = c.call("core.add_torrent_file", makeList(name, b64, makeDict(c.settings)), makeDict(nil))
-		//  c.call("core.add_torrent_file", makeList(name, b64),makeDict(c.settings))
-		//   └-> THIS WOULD NOT WORK!!!!!!!
-		//       Thank you Deluge!
-		if e != nil {
-			_ = c.init()
-			continue
+
+		if conn, err := c.newConn(); err == nil {
+			defer conn.Close()
+			if c.login(conn) != nil {
+				continue
+			}
+			if c.call("core.add_torrent_file", makeList(name, b64, makeDict(c.settings)), makeDict(nil), conn) != nil {
+				//c.call("core.add_torrent_file", makeList(name, b64),makeDict(c.settings), conn)
+				//└-> THIS WOULD NOT WORK!!!!!!!
+				//    Thank you Deluge!
+				continue
+			}
+			if c.recvResp(conn) == nil {
+				return nil
+			}
 		}
 
-		e = c.recvResp()
-		if e == nil {
-			return
-		}
-		log.Println("Last: ", e)
 	}
 
 	return ErrAddFail
@@ -102,7 +102,6 @@ func (c *DeType) Label() string {
 
 func NewDeClient(key string, m map[string]interface{}) *DeType {
 	var nc = &DeType{
-		client:   nil,
 		name:     "Deluge",
 		label:    key,
 		settings: make(map[string]interface{}),
@@ -129,8 +128,10 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 
 	var failcount int
 	var err error
+	var conn *tls.Conn
 	for {
-		if err = nc.init(); err == nil {
+		if conn, err = nc.init(); err == nil {
+			_ = conn.Close()
 			break
 		}
 		failcount++
@@ -141,20 +142,23 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 	return nc
 }
 
-func (c *DeType) init() (e error) {
+func (c *DeType) init() (conn *tls.Conn, e error) {
 	defer func() {
 		if p := recover(); p != nil {
 			e = p.(error)
 		}
 	}()
 
-	e = c.reconnect()
+	conn, e = c.newConn()
 
-	e = c.detectVersion()
-	log.Println("Deluge client init with error", e)
-	log.Println("Deluge version:", c.version)
-	log.Println("Protocal version:", c.protoVer)
+	conn, e = c.detectVersion(conn)
+	//log.Println("Deluge client init with error", e)
+	//log.Println("Deluge version:", c.version)
+	//log.Println("Protocal version:", c.protoVer)
+	return conn, c.login(conn)
+}
 
+func (c *DeType) login(conn *tls.Conn) (e error) {
 	m := make(map[string]interface{})
 	m["client_version"] = "deluge-client"
 	dict := makeDict(m)
@@ -162,24 +166,28 @@ func (c *DeType) init() (e error) {
 
 	switch c.version {
 	case 1:
-		e = c.call("daemon.login", list, makeDict(nil))
+		e = c.call("daemon.login", list, makeDict(nil), conn)
 	case 2:
-		e = c.call("daemon.login", list, dict)
+		e = c.call("daemon.login", list, dict, conn)
 	}
 
-	return c.recvResp()
+	if e != nil {
+		return
+	}
+
+	return c.recvResp(conn)
 }
 
-func (c *DeType) call(method string, args rencode.List, kargs rencode.Dictionary) (e error) {
+func (c *DeType) call(method string, args rencode.List, kargs rencode.Dictionary, conn *tls.Conn) (e error) {
 	defer func() {
 		if p := recover(); p != nil {
 			e = p.(error)
 		}
 	}()
-	return c.sendCall(c.version, c.protoVer, method, args, kargs)
+	return c.sendCall(c.version, c.protoVer, method, args, kargs, conn)
 }
 
-func (c *DeType) sendCall(version int, protoVer int, method string, args rencode.List, kargs rencode.Dictionary) error {
+func (c *DeType) sendCall(version int, protoVer int, method string, args rencode.List, kargs rencode.Dictionary, conn *tls.Conn) error {
 	rID := reqID.next()
 	var b, z, req bytes.Buffer
 
@@ -206,48 +214,31 @@ func (c *DeType) sendCall(version int, protoVer int, method string, args rencode
 
 	_, _ = req.Write(z.Bytes())
 
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
+	_ = conn.SetDeadline(time.Now().Add(WTimeout * time.Second))
 
-	_ = c.client.SetWriteDeadline(time.Now().Add(WTimeout * time.Second))
-
-	if _, err := c.client.Write(req.Bytes()); err != nil {
+	if _, err := conn.Write(req.Bytes()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *DeType) detectVersion() error {
+func (c *DeType) detectVersion(conn *tls.Conn) (*tls.Conn, error) {
 	sign := make([]byte, 1)
 
 	now := time.Now()
-	_ = c.sendCall(1, None, "daemon.info", makeList(), makeDict(nil))
-	_ = c.sendCall(2, None, "daemon.info", makeList(), makeDict(nil))
-	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
+	_ = c.sendCall(1, None, "daemon.info", makeList(), makeDict(nil), conn)
+	_ = c.sendCall(2, None, "daemon.info", makeList(), makeDict(nil), conn)
+	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil), conn)
 
-	c.rmu.Lock()
-	_ = c.client.SetDeadline(time.Now().Add(1 * time.Second))
-	_, err := c.client.Read(sign)
+	_ = conn.SetDeadline(time.Now().Add(1 * time.Second))
+	_, err := conn.Read(sign)
 
-	c.rttx4 = time.Since(now) + (TimeoutA * time.Second)
-	c.rmu.Unlock()
+	c.rttx4 = time.Since(now) + (TimeoutA * time.Millisecond)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	defer func() {
-		c.rmu.Lock()
-		garbage := make([]byte, 1)
-		_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
-		_, e := c.client.Read(garbage)
-		for e == nil {
-			_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
-			_, e = c.client.Read(garbage)
-		}
-		c.rmu.Unlock()
-	}() // Clean TCP buf.
 
 	if sign[0] == byte('D') {
 		c.version = 2
@@ -259,15 +250,14 @@ func (c *DeType) detectVersion() error {
 		c.version = 1
 		c.protoVer = None
 		//Deluge 1 doesn't recover well from the bad request. Re-connect!
-		if err := c.reconnect(); err != nil {
-			return err
-		}
+		conn.Close()
+		return c.newConn()
 	}
 
-	return nil
+	return conn, nil
 }
 
-func (c *DeType) recvResp() (e error) {
+func (c *DeType) recvResp(conn *tls.Conn) (e error) {
 	defer func() {
 		if p := recover(); p != nil {
 			e = p.(error)
@@ -275,50 +265,49 @@ func (c *DeType) recvResp() (e error) {
 	}()
 
 	var buf bytes.Buffer
-
-	c.rmu.Lock()
-	for {
-		_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
-		if n, _ := io.Copy(&buf, c.client); n == 0 {
-			break
-		}
-	}
-	c.rmu.Unlock()
-
-	resp := buf.Bytes()
 	var zr io.Reader
 
 	switch c.version {
 	case 1:
-		zr, e = zlib.NewReader(bytes.NewReader(resp))
-		if e != nil {
-			return
+		for {
+			_ = conn.SetDeadline(time.Now().Add(c.rttx4))
+			if n, _ := io.Copy(&buf, conn); n == 0 {
+				break
+			}
 		}
 	case 2:
-		zr, e = zlib.NewReader(bytes.NewReader(resp[5:]))
-		if e != nil {
-			return
+		var sign bytes.Buffer
+		var expectLen int
+
+		_ = conn.SetDeadline(time.Now().Add(c.rttx4))
+		if _, err := io.CopyN(&sign, conn, 5); err != nil {
+			return err
 		}
 
-		// Check validaty.
-		var expectLen int
 		switch c.protoVer {
 		case None:
-			if resp[0] != byte('D') {
+			if (sign.Bytes())[0] != byte('D') {
 				return ErrExpectDHeader
 			}
-			if err := binary.Read(bytes.NewReader(resp[1:5]), binary.BigEndian, &expectLen); err != nil {
+			if err := binary.Read(bytes.NewReader((sign.Bytes())[1:5]), binary.BigEndian, &expectLen); err != nil {
 				return err
 			}
 		case 1:
-			if resp[0] != 1 {
+			if (sign.Bytes())[0] != 1 {
 				return ErrExpectPVHeader
 			}
-			expectLen = int(binary.BigEndian.Uint32(resp[1:5]))
+			expectLen = int(binary.BigEndian.Uint32((sign.Bytes())[1:5]))
 		}
-		if len(resp) < expectLen {
+		_ = conn.SetDeadline(time.Now().Add(2 * c.rttx4))
+		if n, _ := io.Copy(&buf, conn); n != int64(expectLen) {
 			return ErrRespIncomplete
 		}
+	}
+
+	resp := buf.Bytes()
+	zr, e = zlib.NewReader(bytes.NewReader(resp))
+	if e != nil {
+		return
 	}
 
 	r := rencode.NewDecoder(zr)
@@ -344,25 +333,12 @@ func (c *DeType) recvResp() (e error) {
 	return
 }
 
-func (c *DeType) newConn() (e error) {
-	c.wmu.Lock()
-	c.rmu.Lock()
-	defer c.wmu.Unlock()
-	defer c.rmu.Unlock()
-
+func (c *DeType) newConn() (conn *tls.Conn, e error) {
 	d := net.Dialer{Timeout: 10 * time.Second}
-	c.client, e = tls.DialWithDialer(&d, "tcp", c.host, &tls.Config{
+	conn, e = tls.DialWithDialer(&d, "tcp", c.host, &tls.Config{
 		InsecureSkipVerify: true,
 	})
 	return
-}
-
-func (c *DeType) reconnect() error {
-	if c.client != nil {
-		_ = c.client.Close()
-	}
-
-	return c.newConn()
 }
 
 func (r *reqIDType) next() (rid int) {
