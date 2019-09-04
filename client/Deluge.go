@@ -35,7 +35,8 @@ type DeType struct {
 	version     int
 	protoVer    int
 	rttx4       time.Duration
-	mu          sync.Mutex
+	wmu         sync.Mutex
+	rmu         sync.Mutex
 }
 
 type reqIDType struct {
@@ -69,11 +70,6 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 
 	var try int
 	b64 := base64.StdEncoding.EncodeToString(data)
-	//nm := make(map[string]interface{})
-	//nm["filename"] = name
-	//nm["filedump"] = b64
-	//nm["options"] = c.settings
-	//c.settings["options"] = name
 
 	for try < 3 {
 		try++
@@ -210,8 +206,8 @@ func (c *DeType) sendCall(version int, protoVer int, method string, args rencode
 
 	_, _ = req.Write(z.Bytes())
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
 
 	_ = c.client.SetWriteDeadline(time.Now().Add(WTimeout * time.Second))
 
@@ -230,19 +226,19 @@ func (c *DeType) detectVersion() error {
 	_ = c.sendCall(2, None, "daemon.info", makeList(), makeDict(nil))
 	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil))
 
-	c.mu.Lock()
+	c.rmu.Lock()
 	_ = c.client.SetDeadline(time.Now().Add(1 * time.Second))
 	_, err := c.client.Read(sign)
 
 	c.rttx4 = time.Since(now) + (TimeoutA * time.Second)
-	c.mu.Unlock()
+	c.rmu.Unlock()
 
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		c.mu.Lock()
+		c.rmu.Lock()
 		garbage := make([]byte, 1)
 		_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
 		_, e := c.client.Read(garbage)
@@ -250,7 +246,7 @@ func (c *DeType) detectVersion() error {
 			_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
 			_, e = c.client.Read(garbage)
 		}
-		c.mu.Unlock()
+		c.rmu.Unlock()
 	}() // Clean TCP buf.
 
 	if sign[0] == byte('D') {
@@ -280,14 +276,14 @@ func (c *DeType) recvResp() (e error) {
 
 	var buf bytes.Buffer
 
-	c.mu.Lock()
+	c.rmu.Lock()
 	for {
 		_ = c.client.SetDeadline(time.Now().Add(c.rttx4))
 		if n, _ := io.Copy(&buf, c.client); n == 0 {
 			break
 		}
 	}
-	c.mu.Unlock()
+	c.rmu.Unlock()
 
 	resp := buf.Bytes()
 	var zr io.Reader
@@ -349,8 +345,10 @@ func (c *DeType) recvResp() (e error) {
 }
 
 func (c *DeType) newConn() (e error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.wmu.Lock()
+	c.rmu.Lock()
+	defer c.wmu.Unlock()
+	defer c.rmu.Unlock()
 
 	d := net.Dialer{Timeout: 10 * time.Second}
 	c.client, e = tls.DialWithDialer(&d, "tcp", c.host, &tls.Config{
