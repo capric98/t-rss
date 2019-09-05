@@ -86,7 +86,6 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 				return nil
 			}
 		}
-
 	}
 
 	return ErrAddFail
@@ -299,7 +298,7 @@ func (c *DeType) recvResp(conn *tls.Conn) (e error) {
 			expectLen = int(binary.BigEndian.Uint32((sign.Bytes())[1:5]))
 		}
 		_ = conn.SetDeadline(time.Now().Add(2 * c.rttx4))
-		if n, _ := io.Copy(&buf, conn); n != int64(expectLen) {
+		if _, err := io.CopyN(&buf, conn, int64(expectLen)); err != nil {
 			return ErrRespIncomplete
 		}
 	}
