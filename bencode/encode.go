@@ -33,7 +33,7 @@ func NewEncoder() *BEncoder {
 func (e *BEncoder) Add(k string, val interface{}) error {
 	var v *Body
 	switch val.(type) {
-	case int, int8, int16, int32, int64:
+	case byte, int, int8, int16, int32, int64:
 		v = &Body{
 			btype: IntValue,
 			value: vtoint64(val),
@@ -194,6 +194,60 @@ func encode(b *Body) []byte {
 		_ = (&buf).WriteByte('e')
 	}
 	return buf.Bytes()
+}
+
+func (body *Body) Delete(k string) {
+	var pos int
+	if pos = body.findpos(k); pos == -1 {
+		return
+	}
+	body.dict = append(body.dict[:pos], body.dict[pos+1:]...)
+	//body.dict[len(body.dict)-1] = kvBody{}
+	//body.dict = body.dict[:len(body.dict)-1]
+}
+func (body *Body) DeleteN(n int) {
+	if len(body.dict) <= n {
+		return
+	}
+	body.dict = append(body.dict[:n], body.dict[n+1:]...)
+	//body.dict[len(body.dict)-1] = kvBody{}
+	//body.dict = body.dict[:len(body.dict)-1]
+}
+func (body *Body) Edit(v interface{}) {
+	if body.btype != ByteString && body.btype != IntValue {
+		return
+	}
+	switch v.(type) {
+	case byte, int, int8, int16, int32, int64:
+		body.btype = IntValue
+		body.value = vtoint64(v)
+	case string:
+		body.btype = ByteString
+		body.byteStr = []byte(v.(string))
+	case []byte:
+		body.btype = ByteString
+		body.byteStr = v.([]byte)
+	}
+}
+func (body *Body) AddPart(k string, v *Body) error {
+	if body.btype != ListType && body.btype != DictType {
+		return ErrTypeFrom
+	}
+	if body.btype == DictType && k == "" {
+		return ErrDictWithoutKey
+	}
+	i := body.inspos(k)
+	if body.btype == DictType {
+		body.dict = append(body.dict[:i], append([]kvBody{kvBody{
+			key:   []byte(k),
+			value: v,
+		}}, body.dict[i:]...)...)
+	} else {
+		body.dict = append(body.dict[:i], append([]kvBody{kvBody{
+			value: v,
+		}}, body.dict[i:]...)...)
+	}
+	return nil
 }
 
 func vtoint64(v interface{}) int64 {

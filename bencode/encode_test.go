@@ -26,5 +26,10 @@ func TestEncode(t *testing.T) {
 	check(e.Add("X", 114514))
 	result := e.End()
 	result[0].print(0)
+	result[0].Delete("A")
+	result[0].Dict("X").Edit(1919810)
+	check(result[0].AddPart("Copy", result[0].Dict("name")))
+	result[0].Dict("name").Edit("Yajuu Senpai")
+	result[0].print(0)
 	//t.Fail()
 }

@@ -32,7 +32,6 @@ func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 func checkTLength(data []byte, min int64, max int64) (bool, int64) {
 	defer func() {
 		if p := recover(); p != nil {
-			return false, -1
 		}
 	}()
 
