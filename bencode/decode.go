@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	Unknown    = -100
 	DorLEnd    = -1 // Dictionary or List end mark.
 	DictType   = 0
 	ListType   = 1
@@ -24,17 +25,16 @@ var (
 	ErrTooManyEnd          = errors.New("bencode: Too many end.")
 )
 
-type KvBody struct {
-	key   []byte
+type kvBody struct {
 	value *Body
+	key   []byte
 }
 
 type Body struct {
-	Type    int
-	Value   int64
-	ByteStr []byte
-	Dict    []KvBody
-	List    []*Body
+	btype   int
+	value   int64
+	byteStr []byte
+	dict    []kvBody // nil key List -> Dict
 }
 
 func decodepart(data []byte) (typemark int, offset int, value int64, e error) {
@@ -96,8 +96,8 @@ func Decode(data []byte) (result []*Body, e error) {
 	length := len(data)
 
 	stack[0] = &Body{
-		Type: ListType,
-		List: make([]*Body, 0, 1),
+		btype: ListType,
+		dict:  make([]kvBody, 0, 1),
 	}
 	var lastString []byte
 
@@ -113,52 +113,52 @@ func Decode(data []byte) (result []*Body, e error) {
 			lastString = nil
 		case DictType:
 			tmp = &Body{
-				Type: DictType,
-				Dict: make([]KvBody, 0, 8),
+				btype: DictType,
+				dict:  make([]kvBody, 0, 2),
 			}
 		case ListType:
 			tmp = &Body{
-				Type: ListType,
-				List: make([]*Body, 0, 8),
+				btype: ListType,
+				dict:  make([]kvBody, 0, 4),
 			}
 		case IntValue:
 			tmp = &Body{
-				Type:  IntValue,
-				Value: value,
+				btype: IntValue,
+				value: value,
 			}
 		case ByteString:
 			offset += shift
 			shift = int(value)
 			tmp = &Body{
-				Type:    ByteString,
-				ByteStr: data[offset+1 : offset+int(value)+1],
+				btype:   ByteString,
+				byteStr: data[offset+1 : offset+int(value)+1],
 			}
 		}
 
 		if mark != DorLEnd {
-			switch stack[pos].Type {
+			switch stack[pos].btype {
 			case DictType:
 				if lastString == nil {
-					if tmp.Type == ByteString {
-						lastString = tmp.ByteStr
+					if tmp.btype == ByteString {
+						lastString = tmp.byteStr
 					} else {
 						e = ErrInvalidDictKey
 					}
 
 				} else {
-					stack[pos].Dict = append(stack[pos].Dict, KvBody{
+					stack[pos].dict = append(stack[pos].dict, kvBody{
 						key:   lastString,
 						value: tmp,
 					})
 					lastString = nil
 				}
 			case ListType:
-				stack[pos].List = append(stack[pos].List, tmp)
+				stack[pos].dict = append(stack[pos].dict, kvBody{value: tmp})
 			default:
 				e = ErrTypeFrom
 			}
 
-			if tmp.Type < IntValue {
+			if tmp.btype < IntValue {
 				(pos)++
 				stack[pos] = tmp
 			}
@@ -176,37 +176,85 @@ func Decode(data []byte) (result []*Body, e error) {
 		if e != nil {
 			return
 		}
-		//stack[0].List[0].print(0)
-		//fmt.Println()
 	}
 
-	result = stack[0].List
+	result = make([]*Body, len(stack[0].dict))
+	for i := 0; i < len(stack[0].dict); i++ {
+		result[i] = stack[0].dict[i].value
+	}
 	return
 }
 
-func (body *Body) Get(key string) *Body {
-	if body.Type != DictType {
+func (body *Body) Type() int {
+	return body.btype
+}
+
+func (body *Body) Value() int64 {
+	if body.btype == IntValue {
+		return body.value
+	}
+	return Unknown
+}
+
+func (body *Body) BStr() []byte {
+	if body.btype == ByteString {
+		return body.byteStr
+	}
+	return nil
+}
+
+func (body *Body) Dict(key string) *Body {
+	if body.btype != DictType {
 		return nil
 	}
-	dict := body.Dict
+	pos := body.findpos(key)
+	if pos == -1 {
+		return nil
+	}
+	return body.dict[pos].value
+}
+
+func (body *Body) findpos(k string) int {
+	dict := body.dict
 	dlen := len(dict) - 1
 	l := 0
 	r := dlen
 	var m int
-	var ckey string
+	var key string
 	for {
 		m = (l + r) / 2
 		if m < 0 || m > dlen || l > r {
-			return nil
+			return -1
 		}
-		ckey = string(dict[m].key)
-		if ckey == key {
-			return dict[m].value
+		key = string(dict[m].key)
+		if key == k {
+			return m
 		}
-		if ckey > key {
+		if key > k {
 			r = m - 1
 		} else {
 			l = m + 1
 		}
 	}
+}
+
+func (body *Body) DictN(n int) (k string, b *Body) {
+	if body.btype != DictType || len(body.dict) <= n {
+		return
+	}
+	return string(body.dict[n].key), body.dict[n].value
+}
+
+func (body *Body) List(n int) *Body {
+	if body.btype != ListType || len(body.dict) <= n {
+		return nil
+	}
+	return body.dict[n].value
+}
+
+func (body *Body) Len() int {
+	if body.btype == ListType || body.btype == DictType {
+		return len(body.dict)
+	}
+	return 0
 }

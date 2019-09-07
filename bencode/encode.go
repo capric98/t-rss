@@ -1,12 +1,215 @@
 package bencode
 
-/*import (
-	"crypto/sha1"
+import (
+	"bytes"
+	"errors"
+	"fmt"
 )
 
-func calcInfoHash(data []byte) ([]byte, error) {
-	hasher := sha1.New()
-	_, _ = hasher.Write(data)
-	//return hex.EncodeToString(hasher.Sum(nil)), hasher.Sum(nil), nil
-	return hasher.Sum(nil), nil
-}*/
+var (
+	ErrInvalidBody    = errors.New("bencode: Body did not pass Check().")
+	ErrDictWithoutKey = errors.New("bencode: Dict need a key to add value.")
+	ErrUnknownType    = errors.New("bencode: Unknown type to add.")
+	t                 = []string{"Dict", "List", "Int", "ByteString"}
+)
+
+type BEncoder struct {
+	stack []*Body
+	pos   int
+}
+
+func NewEncoder() *BEncoder {
+	encoder := &BEncoder{
+		stack: make([]*Body, MaxDepth),
+		pos:   0,
+	}
+	encoder.stack[0] = &Body{
+		btype: ListType,
+		dict:  make([]kvBody, 0, 2),
+	}
+	return encoder
+}
+
+func (e *BEncoder) Add(k string, val interface{}) error {
+	var v *Body
+	switch val.(type) {
+	case int, int8, int16, int32, int64:
+		v = &Body{
+			btype: IntValue,
+			value: vtoint64(val),
+		}
+	case string:
+		v = &Body{
+			btype:   ByteString,
+			byteStr: []byte(val.(string)),
+		}
+	case []byte:
+		v = &Body{
+			btype:   ByteString,
+			byteStr: val.([]byte),
+		}
+	default:
+		return ErrUnknownType
+	}
+
+	if k == "" && e.stack[e.pos].btype == DictType {
+		return ErrDictWithoutKey
+	}
+	switch e.stack[e.pos].btype {
+	case DictType:
+		newkv := kvBody{
+			key:   []byte(k),
+			value: v,
+		}
+		if len(e.stack[e.pos].dict) == 0 {
+			e.stack[e.pos].dict = append(e.stack[e.pos].dict, newkv)
+		} else {
+			i := e.stack[e.pos].inspos(k)
+			e.stack[e.pos].dict = append(e.stack[e.pos].dict[:i], append([]kvBody{newkv}, e.stack[e.pos].dict[i:]...)...)
+		}
+	case ListType:
+		e.stack[e.pos].dict = append(e.stack[e.pos].dict, kvBody{value: v})
+	default:
+		return errors.New("bencode: Cannot add k-v struct to " + t[e.stack[e.pos].btype])
+	}
+	return nil
+}
+
+func (e *BEncoder) NewDict(k string) error {
+	return e.newpart(DictType, k)
+}
+
+func (e *BEncoder) NewList(k string) error {
+	return e.newpart(ListType, k)
+}
+
+func (e *BEncoder) EndPart() error {
+	if e.pos == 0 {
+		return ErrTooManyEnd
+	}
+	switch e.stack[e.pos].btype {
+	case ListType, DictType:
+		e.pos--
+	default:
+		return errors.New("bencode: Cannot end at " + t[e.stack[e.pos].btype])
+	}
+	return nil
+}
+
+func (e *BEncoder) End() []*Body {
+	result := make([]*Body, 0, 1)
+	for i := 0; i < len(e.stack[0].dict); i++ {
+		result = append(result, e.stack[0].dict[i].value)
+	}
+	return result
+}
+
+func (e *BEncoder) newpart(Type int, k string) error {
+	if e.pos+1 == MaxDepth {
+		return ErrEncodeDepthTooGreat
+	}
+	switch e.stack[e.pos].btype {
+	case ListType:
+		e.pos++
+		e.stack[e.pos] = &Body{
+			btype: Type,
+			dict:  make([]kvBody, 0, 2),
+		}
+		e.stack[e.pos-1].dict = append(e.stack[e.pos-1].dict, kvBody{value: e.stack[e.pos]})
+	case DictType:
+		if k == "" {
+			return ErrDictWithoutKey
+		}
+		e.pos++
+		e.stack[e.pos] = &Body{
+			btype: Type,
+			dict:  make([]kvBody, 0, 2),
+		}
+		i := e.stack[e.pos-1].inspos(k)
+		e.stack[e.pos-1].dict = append(e.stack[e.pos-1].dict[:i], append([]kvBody{kvBody{
+			key:   []byte(k),
+			value: e.stack[e.pos],
+		}}, e.stack[e.pos-1].dict[i:]...)...)
+	default:
+		return errors.New("bencode: Cannot add Dict to " + t[e.stack[e.pos].btype])
+	}
+	return nil
+}
+
+func (body *Body) inspos(k string) int {
+	l := -1
+	r := len(body.dict)
+	for {
+		if l+1 >= r {
+			return l + 1
+		}
+		m := (l + r) / 2
+		if k < string(body.dict[m].key) {
+			r = m
+		}
+		if k > string(body.dict[m].key) {
+			l = m
+		}
+	}
+}
+
+func (body *Body) Encode() ([]byte, error) {
+	if !body.Check() {
+		return nil, ErrInvalidBody
+	}
+	return encode(body), nil
+}
+
+func encode(b *Body) []byte {
+	var buf bytes.Buffer
+
+	switch b.btype {
+	case IntValue:
+		_ = (&buf).WriteByte('i')
+		i := b.value
+		if i < 0 {
+			i = -i
+			_ = (&buf).WriteByte('-')
+		}
+		_, _ = (&buf).WriteString(fmt.Sprintf("%d", i))
+		_ = (&buf).WriteByte('e')
+	case ByteString:
+		_, _ = (&buf).WriteString(fmt.Sprintf("%d", len(b.byteStr)))
+		_ = (&buf).WriteByte(':')
+		_, _ = (&buf).Write(b.byteStr)
+	default:
+		if b.btype == ListType {
+			_ = (&buf).WriteByte('l')
+		} else {
+			_ = (&buf).WriteByte('d')
+		}
+		for _, v := range b.dict {
+			if v.key != nil {
+				_, _ = (&buf).WriteString(fmt.Sprintf("%d", len(v.key)))
+				_ = (&buf).WriteByte(':')
+				_, _ = (&buf).Write(v.key)
+			}
+			_, _ = (&buf).Write(encode(v.value))
+		}
+		_ = (&buf).WriteByte('e')
+	}
+	return buf.Bytes()
+}
+
+func vtoint64(v interface{}) int64 {
+	switch v.(type) {
+	case byte:
+		return int64(v.(byte))
+	case int8:
+		return int64(v.(int8))
+	case int16:
+		return int64(v.(int16))
+	case int32:
+		return int64(v.(int32))
+	case int64:
+		return int64(v.(int64))
+	case int:
+		return int64(v.(int))
+	}
+	return 0
+}

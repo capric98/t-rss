@@ -30,13 +30,19 @@ func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 }
 
 func checkTLength(data []byte, min int64, max int64) (bool, int64) {
+	defer func() {
+		if p := recover(); p != nil {
+			return false, -1
+		}
+	}()
+
 	result, err := bencode.Decode(data)
 	if err != nil {
 		return false, -1
 	}
-	info := result[0].Get("info")
-	pl := (info.Get("piece length")).Value
-	ps := int64(len((info.Get("pieces")).ByteStr)) / 20
+	info := result[0].Dict("info")
+	pl := (info.Dict("piece length")).Value()
+	ps := int64(len((info.Dict("pieces")).BStr())) / 20
 	length := pl * ps
 	if min < length && length < max {
 		return true, length

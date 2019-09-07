@@ -1,6 +1,7 @@
 package bencode
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"testing"
@@ -19,27 +20,28 @@ func (b *Body) print(level int) {
 	}
 
 	printSpace(level)
-	switch b.Type {
+	switch b.Type() {
 	case IntValue:
-		fmt.Println(b.Value)
+		fmt.Println(b.Value())
 	case ByteString:
-		if len(b.ByteStr) < 250 {
-			fmt.Println(string(b.ByteStr))
+		if len(b.BStr()) < 250 {
+			fmt.Println(string(b.BStr()))
 		} else {
 			fmt.Println("[...Too long]")
 		}
 	case DictType:
 		fmt.Println("[Dictionary]")
-		for k := range b.Dict {
+		for i := 0; i < b.Len(); i++ {
 			printSpace(level + 1)
-			fmt.Println(string(b.Dict[k].key) + ":")
-			(b.Get(string(b.Dict[k].key))).print(level + 2)
-			//b.Dict[k].value.print(level + 2)
+			k, _ := b.DictN(i)
+			fmt.Println(k + ":")
+			v := b.Dict(k)
+			v.print(level + 2)
 		}
 	case ListType:
 		fmt.Println("[List]")
-		for _, v := range b.List {
-			v.print(level + 1)
+		for i := 0; i < b.Len(); i++ {
+			b.List(i).print(level + 1)
 		}
 	}
 }
@@ -58,11 +60,22 @@ func TestDecodeByteSlice(t *testing.T) {
 	fmt.Printf("%s\n", time.Since(startT))
 	result[0].print(0)
 
-	info := result[0].Get("info")
-	pl := (info.Get("piece length")).Value
-	ps := int64(len((info.Get("pieces")).ByteStr)) / 20
+	info := result[0].Dict("info")
+	pl := (info.Dict("piece length")).Value()
+	ps := int64(len((info.Dict("pieces")).BStr())) / 20
 	//ps := int64(1)
 	fmt.Println(float64(pl*ps) / 1024 / 1024 / 1024)
+	fmt.Println("Checked:", result[0].Check())
+
+	hash, err := result[0].Infohash()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(hex.EncodeToString(hash))
+	}
+
+	//enc, _ := result[0].Encode()
+	//_ = ioutil.WriteFile("out", enc, 0644)
 	//t.Fail()
 }
 
