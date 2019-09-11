@@ -27,8 +27,8 @@ func cleanDaemon() {
 			}
 			if info.IsDir() {
 				continue
-			} else if time.Since(info.ModTime()) > (259200 * time.Second) {
-				err := os.Remove(file) //Remove history file which exists over 3 days.
+			} else if time.Since(info.ModTime()) > (10 * 259200 * time.Second) {
+				err := os.Remove(file) //Remove history file which exists over 30 days.
 				if err != nil {
 					LevelPrintLog(fmt.Sprintf("Failed to remove file %s with error: %v\n", file, err), true)
 					continue

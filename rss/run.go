@@ -31,8 +31,7 @@ func checkRegexp(v RssRespType, reg []*regexp.Regexp) bool {
 
 func checkTLength(data []byte, min int64, max int64) (bool, int64) {
 	defer func() {
-		if p := recover(); p != nil {
-		}
+		_ = recover()
 	}()
 
 	result, err := bencode.Decode(data)
@@ -151,7 +150,6 @@ func runTask(t Config, signal chan struct{}, wg *sync.WaitGroup) {
 		rssresp, err := fetch(t.RSSLink, &fetcher, t.Cookie)
 		if err != nil {
 			LevelPrintLog(fmt.Sprintf("Caution: Task %s failed to get RSS data and raised an error: %v.\n", t.TaskName, err), true)
-			time.Sleep(t.Interval)
 			continue
 		}
 
@@ -197,11 +195,10 @@ func runTask(t Config, signal chan struct{}, wg *sync.WaitGroup) {
 		if Learn {
 			return
 		}
-		time.Sleep(t.Interval)
 	}
 }
 
-func tick(signal chan struct{}) {
+func tick(signal chan struct{}, t time.Duration) {
 	if Learn {
 		signal <- struct{}{}
 		runtime.Gosched()
@@ -210,5 +207,6 @@ func tick(signal chan struct{}) {
 	}
 	for {
 		signal <- struct{}{}
+		time.Sleep(t)
 	}
 }

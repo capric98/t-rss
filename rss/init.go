@@ -75,7 +75,7 @@ func Init() {
 		wg.Add(1)
 		s := make(chan struct{})
 		go runTask(t, s, &wg)
-		go tick(s)
+		go tick(s, t.Interval)
 		//go runTask(t, &wg)
 	}
 	go cleanDaemon()

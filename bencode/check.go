@@ -6,8 +6,16 @@ package bencode
 
 func (body *Body) Check() (f bool) {
 	f = true
+
 	if body.btype == DictType {
-		for i := 0; i < len(body.dict); i++ {
+		if len(body.dict) == 0 {
+			return false
+		}
+		f = f && body.dict[0].value.Check()
+		for i := 1; i < len(body.dict); i++ {
+			if string(body.dict[i].key) < string(body.dict[i-1].key) {
+				return false
+			}
 			if body.dict[i].value.btype == DictType {
 				f = f && body.dict[i].value.Check()
 			}
