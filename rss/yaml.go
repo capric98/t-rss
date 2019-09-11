@@ -82,6 +82,9 @@ func regcompile(s string) *regexp.Regexp {
 func parseClient(raw map[string]clientConfig) []client.Client {
 	var list = make([]client.Client, 0, 1)
 	for k, v := range raw {
+		if v["type"] == nil {
+			log.Panicln("Invalid config: Client should have type attribute.")
+		}
 		if v["type"].(string) == "qBittorrent" {
 			list = append(list, client.NewqBclient(k, v))
 		}
