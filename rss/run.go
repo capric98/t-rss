@@ -105,6 +105,7 @@ func (r RssRespType) save(task Config, fetcher *http.Client) {
 		if pass, tlen := checkTLength(data, task.Min, task.Max); !pass {
 			LevelPrintLog(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.\n", task.TaskName, r.Title), true)
 			LevelPrintLog(fmt.Sprintf("%d vs [%d,%d]\n", tlen, task.Min, task.Max), false)
+			return
 		}
 	}
 
