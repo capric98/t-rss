@@ -93,6 +93,7 @@ func savehistory(path string) {
 }
 
 func (r RssRespType) save(task Config, fetcher *http.Client) {
+	time.Sleep(task.Latency)
 	startT := time.Now()
 
 	data, filename, err := r.getTorrent(task, fetcher)

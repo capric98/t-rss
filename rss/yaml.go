@@ -17,6 +17,7 @@ type confYaml struct {
 	Cookie      string `yaml:"cookie"`
 	Strict      bool   `yaml:"strict"`
 	Interval    int    `yaml:"interval"`
+	Latency     int    `yaml:"latency"`
 	Download_to string `yaml:"download_to"`
 
 	Content_size struct {
@@ -36,6 +37,7 @@ type Config struct {
 	Cookie      string
 	Strict      bool
 	Interval    time.Duration
+	Latency     time.Duration
 	Download_to string
 
 	Min, Max       int64
@@ -111,6 +113,7 @@ func parse(data []byte) (conf []Config) {
 			Cookie:      v.Cookie,
 			Strict:      v.Strict,
 			Interval:    time.Duration(v.Interval) * time.Second,
+			Latency:     time.Duration(v.Latency) * time.Second,
 			Download_to: v.Download_to,
 			Min:         UConvert(v.Content_size.Min),
 			Max:         UConvert(v.Content_size.Max),
