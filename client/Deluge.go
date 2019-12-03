@@ -365,17 +365,17 @@ func makeDict(args map[string]interface{}) rencode.Dictionary {
 }
 
 func convertInt(i interface{}) int {
-	switch i.(type) {
+	switch i := i.(type) {
 	case int8:
-		return int(i.(int8))
+		return int(i)
 	case int16:
-		return int(i.(int16))
+		return int(i)
 	case int32:
-		return int(i.(int32))
+		return int(i)
 	case int64:
-		return int(i.(int64))
+		return int(i)
 	case int:
-		return i.(int)
+		return i
 	default:
 		return -1
 	}
@@ -385,13 +385,13 @@ func parseSpeed(v interface{}) float32 {
 	if v == nil {
 		return -1
 	}
-	switch v.(type) {
+	switch v := v.(type) {
 	case int:
-		return float32(v.(int))
+		return float32(v)
 	case string:
 		var spNum float32
 		u := make([]rune, 0)
-		for _, c := range v.(string) {
+		for _, c := range v {
 			if !unicode.IsDigit(c) {
 				u = append(u, c)
 			} else {

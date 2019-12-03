@@ -24,7 +24,7 @@ type QBType struct {
 }
 
 var (
-	qBparalist      = []string{"dlLimit", "upLimit", "savepath", "paused"}
+	qBparalist      = []string{"dlLimit", "upLimit", "savepath", "paused", "category", "skip_checking", "root_folder", "rename", "autoTMM", "sequentialDownload", "firstLastPiecePrio"}
 	privateIPBlocks []*net.IPNet
 )
 
@@ -45,17 +45,17 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 	}
 
 	for k, v := range m {
-		switch v.(type) {
+		switch v := v.(type) {
 		case string:
-			nc.settings[k] = v.(string)
+			nc.settings[k] = v
 		case bool:
-			if v.(bool) {
+			if v {
 				nc.settings[k] = "true"
 			} else {
 				nc.settings[k] = "false"
 			}
 		case int:
-			nc.settings[k] = fmt.Sprintf("%d", v.(int))
+			nc.settings[k] = fmt.Sprintf("%d", v)
 		}
 	} // Copy settings.
 
