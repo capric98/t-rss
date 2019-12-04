@@ -17,9 +17,6 @@ import (
 func (w *worker) run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	Min := int64(0)
-	Max := int64(0x7FFFFFFF)
-
 	for tasks := range w.ticker {
 		w.log(fmt.Sprintf("Run task: %s.\n", w.name), 1)
 
@@ -45,9 +42,9 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			}
 
 			// Check content_size.
-			if !(v.Length >= Min && v.Length <= Max) {
+			if !(v.Length >= w.Config.Min && v.Length <= w.Config.Max) {
 				w.log(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", w.name, v.Title), 1)
-				w.log(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, Min, Max), 0)
+				w.log(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, w.Config.Min, w.Config.Max), 0)
 				rjCount++
 				continue
 			}

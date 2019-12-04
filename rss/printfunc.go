@@ -20,11 +20,3 @@ package rss
 // 	fmt.Fprint(os.Stderr, "\n")
 // 	oLock.Unlock()
 // }
-
-// func LevelPrintLog(s string, important bool) {
-// 	oLock.Lock()
-// 	if important || (DMode) {
-// 		log.Print(s)
-// 	}
-// 	oLock.Unlock()
-// }

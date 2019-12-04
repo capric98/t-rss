@@ -1,66 +1,47 @@
 package core
 
 import (
-	"time"
 	"log"
 	"regexp"
+	"time"
 	"unicode"
 
-	"gopkg.in/yaml.v2"
 	"github.com/capric98/t-rss/client"
+	"gopkg.in/yaml.v2"
 )
 
 func parse(data []byte) (conf map[string]Conf) {
-	tmp:=make(map[string]ymlConf)
+	tmp := make(map[string]ymlConf)
 	conf = make(map[string]Conf)
 	if err := yaml.Unmarshal(data, &tmp); err != nil {
 		log.Println("Failed to parse config file:")
 		log.Fatal(err)
 	}
 
-	for k,v := range tmp {
-		tmp:= Conf{
-			RSSLink: v.RSSLink,
-			Cookie: v.Cookie,
-			Strict: v.Strict,
-			Interval: time.Duration(v.Interval)*time.Second,
-			Latency: time.Duration(v.Latency)*time.Second,
+	for k, v := range tmp {
+		tmp := Conf{
+			RSSLink:     v.RSSLink,
+			Cookie:      v.Cookie,
+			Strict:      v.Strict,
+			Interval:    time.Duration(v.Interval) * time.Second,
+			Latency:     time.Duration(v.Latency) * time.Second,
 			Download_to: v.Download_to,
-			Min: UConvert(v.Content_size.Min),
-			Max: UConvert(v.Content_size.Max),
-			Accept: regcompile(v.Regexp.Accept),
-			Reject: regcompile(v.Regexp.Reject),
-			Client: parseClient(v.Client),
+			Min:         UConvert(v.Content_size.Min),
+			Max:         UConvert(v.Content_size.Max),
+			Accept:      regcompile(v.Regexp.Accept),
+			Reject:      regcompile(v.Regexp.Reject),
+			Client:      parseClient(v.Client),
 		}
-		if v.Interval==0 {
-			tmp.Interval = 30*time.Second
+		if v.Interval == 0 {
+			tmp.Interval = 30 * time.Second
 		}
-		conf[k]=tmp
+		if tmp.Max == 0 {
+			tmp.Max = 1024 * 1024 * 1024 * 1024 // 1TiB
+		}
+		conf[k] = tmp
 	}
 	return
 }
-
-// 	for _,v := range conf {
-// 		if v.Content_size.Max == 0 {
-// 						tmp.Max = 0x7FFFFFFFFFFFFFFF
-// 					}
-// 					if v.Regexp.Accept != nil {
-// 						tmp.Accept = make([]*regexp.Regexp, len(v.Regexp.Accept))
-// 						for i, r := range v.Regexp.Accept {
-// 							tmp.Accept[i] = regcompile(r)
-// 						}
-// 					}
-// 					if v.Regexp.Reject != nil {
-// 						tmp.Reject = make([]*regexp.Regexp, len(v.Regexp.Reject))
-// 						for i, r := range v.Regexp.Reject {
-// 							tmp.Reject[i] = regcompile(r)
-// 						}
-// 					}
-// 					tmp.Client = parseClient(v.Client)
-// 					conf = append(conf, tmp)
-// 	}
-// 	return
-// }
 
 func UConvert(s string) int64 {
 	if s == "" {
@@ -90,13 +71,13 @@ func UConvert(s string) int64 {
 }
 
 func regcompile(s []string) []*regexp.Regexp {
-	if s==nil {
+	if s == nil {
 		return nil
 	}
 
-	rs := make([]*regexp.Regexp,0,1)
+	rs := make([]*regexp.Regexp, 0, 1)
 
-	for _,v := range s {
+	for _, v := range s {
 		r, e := regexp.Compile(v)
 		if e != nil {
 			log.Println("Failed to build regexp:", v)
@@ -104,7 +85,7 @@ func regcompile(s []string) []*regexp.Regexp {
 		}
 		rs = append(rs, r)
 	}
-	
+
 	return rs
 }
 

@@ -14,11 +14,6 @@ import (
 	"github.com/capric98/t-rss/rss"
 )
 
-// var (
-// 	DMode,TestOnly,Learn bool
-// 	ConfigPath, CDir string
-// )
-
 func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 	DMode = *DM
 	TestOnly = *TO
