@@ -30,6 +30,8 @@ func parse(data []byte) (conf map[string]Conf) {
 			Max:         UConvert(v.Content_size.Max),
 			Accept:      regcompile(v.Regexp.Accept),
 			Reject:      regcompile(v.Regexp.Reject),
+			DeleteT:     regcompile(v.EditTracker.Delete),
+			AddT:        v.EditTracker.Add,
 			Client:      parseClient(v.Client),
 		}
 		if v.Interval == 0 {

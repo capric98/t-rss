@@ -32,7 +32,7 @@ func NewEncoder() *BEncoder {
 
 func (e *BEncoder) Add(k string, val interface{}) error {
 	var v *Body
-	switch val.(type) {
+	switch val := val.(type) {
 	case byte, int, int8, int16, int32, int64:
 		v = &Body{
 			btype: IntValue,
@@ -41,12 +41,12 @@ func (e *BEncoder) Add(k string, val interface{}) error {
 	case string:
 		v = &Body{
 			btype:   ByteString,
-			byteStr: []byte(val.(string)),
+			byteStr: []byte(val),
 		}
 	case []byte:
 		v = &Body{
 			btype:   ByteString,
-			byteStr: val.([]byte),
+			byteStr: val,
 		}
 	default:
 		return ErrUnknownType
@@ -217,16 +217,16 @@ func (body *Body) Edit(v interface{}) {
 	if body.btype != ByteString && body.btype != IntValue {
 		return
 	}
-	switch v.(type) {
+	switch v := v.(type) {
 	case byte, int, int8, int16, int32, int64:
 		body.btype = IntValue
 		body.value = vtoint64(v)
 	case string:
 		body.btype = ByteString
-		body.byteStr = []byte(v.(string))
+		body.byteStr = []byte(v)
 	case []byte:
 		body.btype = ByteString
-		body.byteStr = v.([]byte)
+		body.byteStr = v
 	}
 }
 func (body *Body) AddPart(k string, v *Body) error {
@@ -250,20 +250,52 @@ func (body *Body) AddPart(k string, v *Body) error {
 	return nil
 }
 
+func NewBStr(s string) *Body {
+	return &Body{
+		btype:   ByteString,
+		byteStr: []byte(s),
+	}
+}
+
+func NewEmptyList() *Body {
+	return &Body{
+		btype: ListType,
+		dict:  make([]kvBody, 0, 2),
+	}
+}
+
+func (b *Body) AnnounceList(s []string) {
+	if b.btype != ListType {
+		return
+	}
+	for _, v := range s {
+		tmp := kvBody{
+			value: &Body{
+				btype: ListType,
+				dict: []kvBody{kvBody{value: &Body{
+					btype:   ByteString,
+					byteStr: []byte(v),
+				}}},
+			},
+		}
+		b.dict = append(b.dict, tmp)
+	}
+}
+
 func vtoint64(v interface{}) int64 {
-	switch v.(type) {
+	switch v := v.(type) {
 	case byte:
-		return int64(v.(byte))
+		return int64(v)
 	case int8:
-		return int64(v.(int8))
+		return int64(v)
 	case int16:
-		return int64(v.(int16))
+		return int64(v)
 	case int32:
-		return int64(v.(int32))
+		return int64(v)
 	case int64:
-		return int64(v.(int64))
+		return v
 	case int:
-		return int64(v.(int))
+		return int64(v)
 	}
 	return 0
 }

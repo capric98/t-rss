@@ -18,7 +18,7 @@ func (w *worker) run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for tasks := range w.ticker {
-		w.log(fmt.Sprintf("Run task: %s.\n", w.name), 1)
+		w.log(fmt.Sprintf("Run task: %s.", w.name), 1)
 
 		acCount := 0
 		rjCount := 0
@@ -31,25 +31,25 @@ func (w *worker) run(wg *sync.WaitGroup) {
 
 			// Check regexp filter.
 			if (w.Config.Reject != nil) && (checkRegexp(v, w.Config.Reject)) {
-				w.log(fmt.Sprintf("%s: Reject item \"%s\"\n", w.name, v.Title), 1)
+				w.log(fmt.Sprintf("%s: Reject item \"%s\"", w.name, v.Title), 1)
 				rjCount++
 				continue
 			}
 			if w.Config.Accept != nil && (w.Config.Strict) && (!checkRegexp(v, w.Config.Accept)) {
-				w.log(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.\n", w.name, v.Title), 1)
+				w.log(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.", w.name, v.Title), 1)
 				rjCount++
 				continue
 			}
 
 			// Check content_size.
 			if !(v.Length >= w.Config.Min && v.Length <= w.Config.Max) {
-				w.log(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.\n", w.name, v.Title), 1)
-				w.log(fmt.Sprintf("%d vs [%d,%d]\n", v.Length, w.Config.Min, w.Config.Max), 0)
+				w.log(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.", w.name, v.Title), 1)
+				w.log(fmt.Sprintf("%d vs [%d,%d]", v.Length, w.Config.Min, w.Config.Max), 0)
 				rjCount++
 				continue
 			}
 
-			w.log(fmt.Sprintf("%s: Accept item \"%s\"\n", w.name, v.Title), 1)
+			w.log(fmt.Sprintf("%s: Accept item \"%s\"", w.name, v.Title), 1)
 			acCount++
 
 			if Learn {
@@ -82,6 +82,12 @@ func checkRegexp(v torrents.Individ, reg []*regexp.Regexp) bool {
 }
 
 func (w *worker) save(t torrents.Individ) {
+	defer func() {
+		if e := recover(); e != nil {
+			w.log(e, 1)
+		}
+	}()
+
 	time.Sleep(w.Config.Latency)
 	startT := time.Now()
 
@@ -93,8 +99,8 @@ func (w *worker) save(t torrents.Individ) {
 	}
 	if t.Length == 0 && w.Config.Strict {
 		if pass, tlen := checkTLength(data, w.Config.Min, w.Config.Max); !pass {
-			w.log(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.\n", w.name, t.Title), 1)
-			w.log(fmt.Sprintf("%d vs [%d,%d]\n", tlen, w.Config.Min, w.Config.Max), 0)
+			w.log(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.", w.name, t.Title), 1)
+			w.log(fmt.Sprintf("%d vs [%d,%d]", tlen, w.Config.Min, w.Config.Max), 0)
 			return
 		}
 	}
@@ -104,13 +110,22 @@ func (w *worker) save(t torrents.Individ) {
 		return
 	}
 
+	if w.Config.DeleteT != nil || w.Config.AddT != nil {
+		nd, err := w.editTorrent(data)
+		if err != nil {
+			w.log(fmt.Sprintf("Edit torrent: %v", err), 1)
+		} else {
+			data = nd
+		}
+	}
+
 	if path != "" {
 		err := ioutil.WriteFile(path+string(os.PathSeparator)+filename, data, 0644)
 		if err != nil {
-			w.log(fmt.Sprintf("Warning: %v\n", err), 1)
+			w.log(fmt.Sprintf("Warning: %v", err), 1)
 			return
 		}
-		w.log(fmt.Sprintf("Item is saved to \"%s\"\n", filename), 0)
+		w.log(fmt.Sprintf("Item is saved to \"%s\"", filename), 0)
 	}
 
 	//Add file to client.
@@ -118,7 +133,7 @@ func (w *worker) save(t torrents.Individ) {
 		for _, v := range w.Config.Client {
 			e := v.Add(data, filename)
 			if e != nil {
-				w.log(fmt.Sprintf("Failed to add item \"%s\" to %s's %s client with message: \"%v\".\n", t.Title, v.Label(), v.Name(), e), 1)
+				w.log(fmt.Sprintf("Failed to add item \"%s\" to %s's %s client with message: \"%v\".", t.Title, v.Label(), v.Name(), e), 1)
 				return
 			}
 		}

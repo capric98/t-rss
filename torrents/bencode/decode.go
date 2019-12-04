@@ -253,6 +253,9 @@ func (body *Body) List(n int) *Body {
 }
 
 func (body *Body) Len() int {
+	if body == nil {
+		return 0
+	}
 	if body.btype == ListType || body.btype == DictType {
 		return len(body.dict)
 	}
