@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"gopkg.in/yaml.v2"
+	"github.com/capric98/t-rss/client"
 )
 
 func parse(data []byte) (conf map[string]Conf) {
@@ -18,7 +19,7 @@ func parse(data []byte) (conf map[string]Conf) {
 	}
 
 	for k,v := range tmp {
-		conf[k] = Conf{
+		tmp:= Conf{
 			RSSLink: v.RSSLink,
 			Cookie: v.Cookie,
 			Strict: v.Strict,
@@ -29,8 +30,12 @@ func parse(data []byte) (conf map[string]Conf) {
 			Max: UConvert(v.Content_size.Max),
 			Accept: regcompile(v.Regexp.Accept),
 			Reject: regcompile(v.Regexp.Reject),
+			Client: parseClient(v.Client),
 		}
-		// Register client!!!!
+		if v.Interval==0 {
+			tmp.Interval = 30*time.Second
+		}
+		conf[k]=tmp
 	}
 	return
 }
@@ -103,18 +108,18 @@ func regcompile(s []string) []*regexp.Regexp {
 	return rs
 }
 
-// func parseClient(raw map[string]clientConfig) []client.Client {
-// 	var list = make([]client.Client, 0, 1)
-// 	for k, v := range raw {
-// 		if v["type"] == nil {
-// 			log.Panicln("Invalid config: Client should have type attribute.")
-// 		}
-// 		if v["type"].(string) == "qBittorrent" {
-// 			list = append(list, client.NewqBclient(k, v))
-// 		}
-// 		if v["type"].(string) == "Deluge" {
-// 			list = append(list, client.NewDeClient(k, v))
-// 		}
-// 	}
-// 	return list
-// }
+func parseClient(raw map[string]clientConfig) []client.Client {
+	var list = make([]client.Client, 0, 1)
+	for k, v := range raw {
+		if v["type"] == nil {
+			log.Panicln("Invalid config: Client should have type attribute.")
+		}
+		if v["type"].(string) == "qBittorrent" {
+			list = append(list, client.NewqBclient(k, v))
+		}
+		if v["type"].(string) == "Deluge" {
+			list = append(list, client.NewDeClient(k, v))
+		}
+	}
+	return list
+}

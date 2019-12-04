@@ -1,6 +1,8 @@
 package core
 
 import (
+	"github.com/capric98/t-rss/client"
+	"net/http"
 	"time"
 	"regexp"
 	"github.com/capric98/t-rss/torrents"
@@ -11,6 +13,8 @@ type worker struct{
 	loglevel int
 	Config Conf
 	ticker chan []torrents.Individ
+	client *http.Client
+	cancel func()
 }
 type clientConfig = map[string]interface{}
 
@@ -46,10 +50,10 @@ type Conf struct {
 
 	Accept []*regexp.Regexp
 	Reject []*regexp.Regexp
-	//Client map[string]clientConfig
+	Client []client.Client
 }
 
 var (
-	DMode,TestOnly bool
+	DMode,TestOnly,Learn bool
 	ConfigPath, CDir string
 )
