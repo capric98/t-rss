@@ -49,18 +49,19 @@ func Init(DMode *bool, TestOnly *bool, Learn *bool, ConfigPath *string, CDir *st
 
 	// Start all the task(s).
 	wg := sync.WaitGroup{}
-	for _, t := range tasks {
+	for k, v := range tasks {
 		wg.Add(1)
 		
 		nw := &worker{
+			name:k,
 			loglevel:1,
-			Config: t,
+			Config: v,
 		}
 		if *DMode {
 			nw.loglevel = 0
 		}
 		if nw.Config.RSSLink!="" {
-			nw.ticker = rss.NewTicker(t.RSSLink, t.Interval, t.Cookie)
+			nw.ticker = rss.NewTicker(v.RSSLink, v.Interval, v.Cookie)
 		}
 
 		go nw.run(&wg)

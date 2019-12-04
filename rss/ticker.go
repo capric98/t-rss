@@ -18,12 +18,12 @@ type ticker struct{
 	ctx context.Context
 }
 
-func NewTicker(link string, interval int, cookie string) (ch chan []torrents.Individ){
+func NewTicker(link string, interval time.Duration, cookie string) (ch chan []torrents.Individ){
 	t:=&ticker{
 		client: &http.Client{},
 		cookie: cookie,
 		link: link,
-		interval: time.Duration(interval)*time.Second,
+		interval: interval,
 	}
 	ch = make(chan []torrents.Individ)
 	go t.tick(ch)

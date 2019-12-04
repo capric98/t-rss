@@ -1,12 +1,15 @@
 package core
 
 import (
+	"time"
+	"regexp"
 	"github.com/capric98/t-rss/torrents"
 )
 
 type worker struct{
+	name string
 	loglevel int
-	Config ymlConf
+	Config Conf
 	ticker chan []torrents.Individ
 }
 type clientConfig = map[string]interface{}
@@ -34,19 +37,16 @@ type Conf struct {
 	RSSLink string
 	Cookie string
 	Strict bool
-	Interval    int
-	Latency     int
+	Interval    time.Duration
+	Latency     time.Duration
 	Download_to string
 
-	Content_size struct {
-		Min string
-		Max string
-	}
-	Regexp struct {
-		Accept []string
-		Reject []string
-	}
-	Client map[string]clientConfig
+	Min int64
+	Max int64
+
+	Accept []*regexp.Regexp
+	Reject []*regexp.Regexp
+	//Client map[string]clientConfig
 }
 
 var (
