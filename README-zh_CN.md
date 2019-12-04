@@ -14,6 +14,13 @@ GoRSS是一个自动rss bt种子文件的程序，相比flexget丰富的功能�
 Name0:                             # 任务名称，随意取
   rss:                             # RSS链接
   cookie:                          #*如果rss链接需要cookie才能访问，请将其粘贴在这里
+  edit_tracker:                    #*编辑tracker
+    delete:                        #*
+      - share                      #*正则表达式，可以有多条，匹配的tracker会被删除
+    add:                           #*
+      - https://example.com/       #*
+      - https://example2.com/      #*
+      - https://example3.com/      #*
   strict: no                       #*严格模式，某些rss给出文件大小均为0，在strict: yes下拒绝(?)
   content_size:                    #*体积过滤，默认单位MB，同时支持以下写法：
     min: 2048                      #*min: "2GB"  or  min: "2G"
