@@ -1,4 +1,4 @@
-package rss
+package core
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ Name0:
       savepath: "/home/Downloads/"`
 
 func TestDecodeYaml(t *testing.T) {
-	con := make(map[string]confYaml)
+	con := make(map[string]Conf)
 	err := yaml.Unmarshal([]byte(yamlString), &con)
 	if err != nil {
 		fmt.Println(err)
