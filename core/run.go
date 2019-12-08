@@ -27,6 +27,10 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			if _, err := os.Stat(CDir + v.GUID); !os.IsNotExist(err) {
 				rjCount++
 				continue
+			} else {
+				if !TestOnly {
+					w.log(savehistory(CDir+v.GUID), 0)
+				}
 			}
 
 			// Check regexp filter.
@@ -52,9 +56,7 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			w.log(fmt.Sprintf("%s: Accept item \"%s\"", w.name, v.Title), 1)
 			acCount++
 
-			if Learn {
-				w.log(savehistory(CDir+v.GUID), 0)
-			} else {
+			if !Learn {
 				go w.save(v)
 			}
 		}
@@ -139,7 +141,6 @@ func (w *worker) save(t torrents.Individ) {
 		}
 	}
 	w.log(fmt.Sprintf("%7.2fms Item \"%s\" done.", time.Since(startT).Seconds()*1000.0, t.Title), 1)
-	w.log(savehistory(CDir+t.GUID), 1)
 }
 
 func (w *worker) getTorrent(t torrents.Individ) ([]byte, string, error) {
