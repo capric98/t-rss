@@ -2,11 +2,13 @@ package rss
 
 import (
 	"context"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/capric98/t-rss/myfeed"
 	"github.com/capric98/t-rss/torrents"
 )
 
@@ -46,9 +48,8 @@ func (t *ticker) tick(ch chan []torrents.Individ) {
 		case <-t.ctx.Done():
 			close(ch)
 			return
-		default:
-			go t.fetch(req, ch)
-			time.Sleep(t.interval)
+		case <-tt.C:
+			t.fetch(req, ch)
 		}
 	}
 }
@@ -66,8 +67,9 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	if e != nil {
 		return
 	}
-	defer resp.Body.Close()
-	// rssFeed, _ := myfeed.Parse(resp.Body)
+	data, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	_, _ = myfeed.Parse(data)
 
 	// for k := range rssFeed.Items {
 	// 	if rssFeed.Items[k].Enclosure.Url == "" {
