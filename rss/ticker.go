@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/capric98/t-rss/myfeed"
 	"github.com/capric98/t-rss/torrents"
 )
 
@@ -80,7 +79,7 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 		_, rerr = resp.Body.Read(chunk)
 	}
 	resp.Body.Close()
-	_, _ = myfeed.Parse(data)
+	//_, _ = myfeed.Parse(data)
 
 	// for k := range rssFeed.Items {
 	// 	if rssFeed.Items[k].Enclosure.Url == "" {
