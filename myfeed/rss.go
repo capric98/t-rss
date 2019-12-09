@@ -3,6 +3,7 @@ package myfeed
 import (
 	"encoding/xml"
 	"html"
+	"io"
 )
 
 type RSSFeed struct {
@@ -59,9 +60,9 @@ type rItem struct {
 	Source   string `xml:"source"`
 }
 
-func rParse(data []byte) (f *Feed, e error) {
+func rParse(r io.ReadCloser) (f []Item, e error) {
 	var feed RSSFeed
-	e = xml.Unmarshal(data, &feed)
+	e = xml.NewDecoder(r).Decode(&feed)
 	if e == nil && len(feed.Channel) == 0 {
 		e = ErrNotRSSFormat
 	}
@@ -81,10 +82,7 @@ func rParse(data []byte) (f *Feed, e error) {
 				items = append(items, i)
 			}
 		}
-		f = &Feed{
-			Items: items,
-			Type:  RSSType,
-		}
+		f = items
 	}
 	return
 }

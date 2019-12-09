@@ -2,6 +2,7 @@ package myfeed
 
 import (
 	"errors"
+	"io"
 )
 
 var (
@@ -11,10 +12,9 @@ var (
 	items = []Item{}
 )
 
-func Parse(data []byte) (f *Feed, e error) {
-	f, e = rParse(data)
-	if e == ErrNotRSSFormat {
-		f, e = aParse(data)
+func Parse(r io.ReadCloser, ftype int) (f []Item, e error) {
+	if ftype == RSSType {
+		return rParse(r)
 	}
-	return
+	return aParse(r)
 }

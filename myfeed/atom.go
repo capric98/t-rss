@@ -1,5 +1,9 @@
 package myfeed
 
-func aParse(data []byte) (f *Feed, e error) {
+import (
+	"io"
+)
+
+func aParse(r io.ReadCloser) (f []Item, e error) {
 	return
 }
