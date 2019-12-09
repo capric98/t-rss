@@ -37,7 +37,7 @@ func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 	CDir = filepath.Dir(CDir+string(os.PathSeparator)) + string(os.PathSeparator) // Just in case.
 	log.Println("History will be saved to:", CDir)
 	if _, err := os.Stat(CDir); os.IsNotExist(err) {
-		merr := os.Mkdir(CDir, 0644)
+		merr := os.Mkdir(CDir, 0666)
 		if merr != nil {
 			log.Fatal(merr)
 		} else {
