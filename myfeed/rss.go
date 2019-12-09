@@ -59,7 +59,7 @@ type rItem struct {
 	Source   string `xml:"source"`
 }
 
-func rParse(data []byte) (f Feed, e error) {
+func rParse(data []byte) (f *Feed, e error) {
 	var feed RSSFeed
 	e = xml.Unmarshal(data, &feed)
 	if e == nil && len(feed.Channel) == 0 {
@@ -67,7 +67,7 @@ func rParse(data []byte) (f Feed, e error) {
 	}
 
 	if e == nil {
-		items := make([]Item, 0, len(feed.Channel[0].Items))
+		items = items[:0]
 		for _, c := range feed.Channel {
 			for _, v := range c.Items {
 				i := Item{
@@ -81,8 +81,10 @@ func rParse(data []byte) (f Feed, e error) {
 				items = append(items, i)
 			}
 		}
-		f.Items = items
-		f.Type = RSSType
+		f = &Feed{
+			Items: items,
+			Type:  RSSType,
+		}
 	}
 	return
 }
