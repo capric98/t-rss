@@ -24,12 +24,12 @@ func (w *worker) run(wg *sync.WaitGroup) {
 		rjCount := 0
 		for _, v := range tasks {
 			// Check if item had been accepted yet.
-			if _, err := os.Stat(CDir + v.GUID); !os.IsNotExist(err) {
+			if _, err := os.Stat(CDir + v.GUID.Value); !os.IsNotExist(err) {
 				rjCount++
 				continue
 			} else {
 				if !TestOnly {
-					w.log(savehistory(CDir+v.GUID), 0)
+					w.log(savehistory(CDir+v.GUID.Value), 0)
 				}
 			}
 
@@ -46,9 +46,9 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			}
 
 			// Check content_size.
-			if !(v.Length >= w.Config.Min && v.Length <= w.Config.Max) {
+			if !(v.Enclosure.Len >= w.Config.Min && v.Enclosure.Len <= w.Config.Max) {
 				w.log(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.", w.name, v.Title), 1)
-				w.log(fmt.Sprintf("%d vs [%d,%d]", v.Length, w.Config.Min, w.Config.Max), 0)
+				w.log(fmt.Sprintf("%d vs [%d,%d]", v.Enclosure.Len, w.Config.Min, w.Config.Max), 0)
 				rjCount++
 				continue
 			}
@@ -99,7 +99,7 @@ func (w *worker) save(t torrents.Individ) {
 		w.log(fmt.Sprintf("Save: %v", err), 1)
 		return
 	}
-	if t.Length == 0 && w.Config.Strict {
+	if t.Enclosure.Len == 0 && w.Config.Strict {
 		if pass, tlen := checkTLength(data, w.Config.Min, w.Config.Max); !pass {
 			w.log(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.", w.name, t.Title), 1)
 			w.log(fmt.Sprintf("%d vs [%d,%d]", tlen, w.Config.Min, w.Config.Max), 0)
@@ -144,7 +144,7 @@ func (w *worker) save(t torrents.Individ) {
 }
 
 func (w *worker) getTorrent(t torrents.Individ) ([]byte, string, error) {
-	req, err := http.NewRequest("GET", t.DUrl, nil)
+	req, err := http.NewRequest("GET", t.Enclosure.Url, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("%v\n", err)
 	}
@@ -176,7 +176,7 @@ func (w *worker) getTorrent(t torrents.Individ) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("Failed to dump byte data: %v", err)
 	}
-	return body, rss.GetFileInfo(t.DUrl, resp.Header), nil
+	return body, rss.GetFileInfo(t.Enclosure.Url, resp.Header), nil
 }
 
 func checkTLength(data []byte, min int64, max int64) (bool, int64) {

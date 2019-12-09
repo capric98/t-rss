@@ -2,13 +2,12 @@ package rss
 
 import (
 	"context"
-	"html"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/capric98/t-rss/gofeed"
+	"github.com/capric98/t-rss/myfeed"
 	"github.com/capric98/t-rss/torrents"
 )
 
@@ -19,10 +18,6 @@ type ticker struct {
 	interval     time.Duration
 	ctx          context.Context
 }
-
-var (
-	fp = gofeed.NewParser()
-)
 
 func NewTicker(name string, link string, cookie string, interval time.Duration, wc *http.Client, ctx context.Context) (ch chan []torrents.Individ) {
 	t := &ticker{
@@ -69,38 +64,20 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 	}
 
 	resp, _ := t.client.Do(req)
-	rssFeed, _ := fp.Parse(resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
+	rssFeed, _ := myfeed.Parse(body)
 
-	ind := make([]torrents.Individ, len(rssFeed.Items))
-	for i, v := range rssFeed.Items {
-		ind[i] = torrents.Individ{
-			Title:    v.Title,
-			Descript: html.UnescapeString(v.Description),
-			Date:     v.Published,
-			GUID:     NameRegularize(v.GUID),
+	for k := range rssFeed.Items {
+		if rssFeed.Items[k].Enclosure.Url == "" {
+			rssFeed.Items[k].Enclosure.Url = rssFeed.Items[k].Link
 		}
-		if v.Enclosures != nil {
-			tmp, err := strconv.Atoi(v.Enclosures[0].Length)
-			if err != nil {
-				tmp = 0
-			}
-			ind[i].DUrl = v.Enclosures[0].URL
-			ind[i].Length = int64(tmp)
-		} else {
-			ind[i].DUrl = v.Link
+		if rssFeed.Items[k].GUID.Value == "" {
+			rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].Title)
 		}
-		if v.Author != nil {
-			ind[i].Author = v.Author.Name
-		}
-		if ind[i].GUID == "" {
-			ind[i].GUID = NameRegularize(v.Title)
-			if len(ind[i].GUID) > 200 {
-				ind[i].GUID = ind[i].GUID[:200]
-			}
-		}
+		rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].GUID.Value)
 	}
 
 	log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
-	ch <- ind
+	ch <- rssFeed.Items
 }
