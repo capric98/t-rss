@@ -1,0 +1,10 @@
+{
+    "entries": [
+        {
+            "source": {
+                "icon": "http://example.org/icon.png"
+            }
+        }
+    ],
+    "version": "1.0"
+}

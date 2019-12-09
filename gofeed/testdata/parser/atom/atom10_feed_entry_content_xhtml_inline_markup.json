@@ -1,0 +1,11 @@
+{
+    "entries": [
+        {
+            "content": {
+                "type": "xhtml",
+                "value": "<p>Entry Content</p>"
+            }
+        }
+    ],
+    "version": "1.0"
+}

@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/capric98/t-rss/gofeed" // fork from mmcdole
 	"github.com/capric98/t-rss/torrents"
-	"github.com/mmcdole/gofeed"
 )
 
 type ticker struct {

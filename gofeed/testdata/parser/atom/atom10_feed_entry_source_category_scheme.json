@@ -1,0 +1,14 @@
+{
+    "entries": [
+        {
+            "source": {
+                "categories": [
+                    {
+                        "scheme": "http://example.org/categories"
+                    }
+                ]
+            }
+        }
+    ],
+    "version": "1.0"
+}
