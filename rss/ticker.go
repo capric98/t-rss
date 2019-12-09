@@ -20,6 +20,10 @@ type ticker struct {
 	ctx          context.Context
 }
 
+var (
+	fp = gofeed.NewParser()
+)
+
 func NewTicker(name string, link string, cookie string, interval time.Duration, wc *http.Client, ctx context.Context) (ch chan []torrents.Individ) {
 	t := &ticker{
 		name:     name,
@@ -38,14 +42,14 @@ func (t *ticker) tick(ch chan []torrents.Individ) {
 	tt := time.NewTicker(t.interval)
 	defer tt.Stop()
 
-	go t.fetch(ch)
+	t.fetch(ch)
 	for {
 		select {
 		case <-t.ctx.Done():
 			close(ch)
 			return
 		case <-tt.C:
-			go t.fetch(ch)
+			t.fetch(ch)
 		}
 	}
 }
@@ -65,7 +69,6 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 	}
 
 	resp, _ := t.client.Do(req)
-	fp := gofeed.NewParser()
 	rssFeed, _ := fp.Parse(resp.Body)
 	resp.Body.Close()
 
