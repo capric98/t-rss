@@ -34,17 +34,18 @@ func NewTicker(name string, link string, cookie string, interval time.Duration, 
 }
 
 func (t *ticker) tick(ch chan []torrents.Individ) {
-	tt := time.NewTicker(t.interval)
-	defer tt.Stop()
+	//tt := time.NewTicker(t.interval)
+	//defer tt.Stop()
 
-	t.fetch(ch)
+	//t.fetch(ch)
 	for {
 		select {
 		case <-t.ctx.Done():
 			close(ch)
 			return
-		case <-tt.C:
-			t.fetch(ch)
+		default:
+			go t.fetch(ch)
+			time.Sleep(t.interval)
 		}
 	}
 }
