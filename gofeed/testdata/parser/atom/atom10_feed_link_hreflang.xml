@@ -1,6 +1,0 @@
-<!--
-Description: feed link hreflang
--->
-<feed xmlns="http://www.w3.org/2005/Atom">
-	<link hreflang="en"></link>
-</feed>

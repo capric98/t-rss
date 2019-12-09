@@ -1,6 +1,0 @@
-<!--
-Description: feed link length
--->
-<feed xmlns="http://www.w3.org/2005/Atom">
-	<link length="1024"></link>
-</feed>

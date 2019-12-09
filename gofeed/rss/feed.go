@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/mmcdole/gofeed/extensions"
+	ext "github.com/capric98/t-rss/gofeed/extensions"
 )
 
 // Feed is an RSS Feed

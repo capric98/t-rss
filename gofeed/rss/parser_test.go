@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mmcdole/gofeed/rss"
+	"github.com/capric98/t-rss/gofeed/rss"
 	"github.com/stretchr/testify/assert"
 )
 

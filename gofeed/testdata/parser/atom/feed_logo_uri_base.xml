@@ -1,4 +1,0 @@
-<feed xmlns="http://www.w3.org/2005/Atom" xml:base="http://example.org">
-    <logo>logo.png</logo>
-    <icon xml:base="img">icon.png</icon>
-</feed>
