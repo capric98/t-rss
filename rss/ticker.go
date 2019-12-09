@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/capric98/t-rss/myfeed"
 	"github.com/capric98/t-rss/torrents"
 )
 
@@ -59,29 +58,29 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 	}()
 	startT := time.Now()
 
-	req, _ := http.NewRequest("GET", t.link, nil)
-	if t.cookie != "" {
-		req.Header.Add("Cookie", t.cookie)
-	}
+	// req, _ := http.NewRequest("GET", t.link, nil)
+	// if t.cookie != "" {
+	// 	req.Header.Add("Cookie", t.cookie)
+	// }
 
-	resp, e := t.client.Do(req)
-	if e != nil {
-		return
-	}
-	defer resp.Body.Close()
-	rssFeed, _ := myfeed.Parse(resp.Body)
+	// resp, e := t.client.Do(req)
+	// if e != nil {
+	// 	return
+	// }
+	// defer resp.Body.Close()
+	// rssFeed, _ := myfeed.Parse(resp.Body)
 
-	for k := range rssFeed.Items {
-		if rssFeed.Items[k].Enclosure.Url == "" {
-			rssFeed.Items[k].Enclosure.Url = rssFeed.Items[k].Link
-		}
-		if rssFeed.Items[k].GUID.Value == "" {
-			rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].Title)
-		}
-		rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].GUID.Value)
-	}
+	// for k := range rssFeed.Items {
+	// 	if rssFeed.Items[k].Enclosure.Url == "" {
+	// 		rssFeed.Items[k].Enclosure.Url = rssFeed.Items[k].Link
+	// 	}
+	// 	if rssFeed.Items[k].GUID.Value == "" {
+	// 		rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].Title)
+	// 	}
+	// 	rssFeed.Items[k].GUID.Value = myfeed.NameRegularize(rssFeed.Items[k].GUID.Value)
+	// }
 
 	log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
-	ch <- rssFeed.Items
+	//ch <- rssFeed.Items
 	runtime.GC()
 }
