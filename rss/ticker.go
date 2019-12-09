@@ -65,7 +65,7 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 
 	resp, _ := t.client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
+	defer resp.Body.Close()
 	rssFeed, _ := myfeed.Parse(body)
 
 	for k := range rssFeed.Items {
