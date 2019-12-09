@@ -2,7 +2,7 @@ package rss
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"runtime"
@@ -19,6 +19,12 @@ type ticker struct {
 	interval     time.Duration
 	ctx          context.Context
 }
+
+var (
+	chunk = make([]byte, 1)
+	data  = []byte{}
+	rerr  error
+)
 
 func NewTicker(name string, link string, cookie string, interval time.Duration, wc *http.Client, ctx context.Context) (ch chan []torrents.Individ) {
 	t := &ticker{
@@ -67,7 +73,12 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	if e != nil {
 		return
 	}
-	data, _ := ioutil.ReadAll(resp.Body)
+	data = data[:0]
+	_, rerr = resp.Body.Read(chunk)
+	for rerr != io.EOF {
+		data = append(data, chunk[0])
+		_, rerr = resp.Body.Read(chunk)
+	}
 	resp.Body.Close()
 	_, _ = myfeed.Parse(data)
 
