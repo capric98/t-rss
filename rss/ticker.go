@@ -33,23 +33,27 @@ func NewTicker(name string, link string, cookie string, interval time.Duration, 
 }
 
 func (t *ticker) tick(ch chan []torrents.Individ) {
-	//tt := time.NewTicker(t.interval)
-	//defer tt.Stop()
+	tt := time.NewTicker(t.interval)
+	defer tt.Stop()
 
-	//t.fetch(ch)
+	req, _ := http.NewRequest("GET", t.link, nil)
+	if t.cookie != "" {
+		req.Header.Add("Cookie", t.cookie)
+	}
+	t.fetch(req, ch)
 	for {
 		select {
 		case <-t.ctx.Done():
 			close(ch)
 			return
 		default:
-			go t.fetch(ch)
+			go t.fetch(req, ch)
 			time.Sleep(t.interval)
 		}
 	}
 }
 
-func (t *ticker) fetch(ch chan []torrents.Individ) {
+func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	defer func() {
 		e := recover()
 		if e != nil {
@@ -58,16 +62,11 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 	}()
 	startT := time.Now()
 
-	// req, _ := http.NewRequest("GET", t.link, nil)
-	// if t.cookie != "" {
-	// 	req.Header.Add("Cookie", t.cookie)
-	// }
-
-	// resp, e := t.client.Do(req)
-	// if e != nil {
-	// 	return
-	// }
-	// defer resp.Body.Close()
+	resp, e := t.client.Do(req)
+	if e != nil {
+		return
+	}
+	defer resp.Body.Close()
 	// rssFeed, _ := myfeed.Parse(resp.Body)
 
 	// for k := range rssFeed.Items {
