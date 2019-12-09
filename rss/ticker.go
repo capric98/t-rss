@@ -2,9 +2,9 @@ package rss
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/capric98/t-rss/myfeed"
@@ -63,10 +63,12 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 		req.Header.Add("Cookie", t.cookie)
 	}
 
-	resp, _ := t.client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
+	resp, e := t.client.Do(req)
+	if e != nil {
+		return
+	}
 	defer resp.Body.Close()
-	rssFeed, _ := myfeed.Parse(body)
+	rssFeed, _ := myfeed.Parse(resp.Body)
 
 	for k := range rssFeed.Items {
 		if rssFeed.Items[k].Enclosure.Url == "" {
@@ -80,4 +82,5 @@ func (t *ticker) fetch(ch chan []torrents.Individ) {
 
 	log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
 	ch <- rssFeed.Items
+	runtime.GC()
 }

@@ -2,6 +2,8 @@ package myfeed
 
 import (
 	"errors"
+	"io"
+	"io/ioutil"
 )
 
 var (
@@ -11,7 +13,8 @@ var (
 	items = []Item{}
 )
 
-func Parse(data []byte) (f *Feed, e error) {
+func Parse(r io.ReadCloser) (f *Feed, e error) {
+	data, _ := ioutil.ReadAll(r)
 	f, e = rParse(data)
 	if e == ErrNotRSSFormat {
 		f, e = aParse(data)
