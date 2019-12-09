@@ -68,6 +68,10 @@ func rParse(r io.ReadCloser) (f []Item, e error) {
 	}
 
 	if e == nil {
+		// https://stackoverflow.com/questions/21469163/golang-reading-xml-memory-leak
+		for k := range items {
+			items[k] = Item{}
+		}
 		items = items[:0]
 		for _, c := range feed.Channel {
 			for _, v := range c.Items {
