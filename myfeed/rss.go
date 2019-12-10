@@ -80,7 +80,7 @@ func rParse(r io.ReadCloser) (f []Item, e error) {
 					PubDate: strToTime(v.SpubDate),
 				}
 				i.Link = html.UnescapeString(i.Link)
-				i.Enclosure.Url = html.UnescapeString(i.Link)
+				i.Enclosure.Url = html.UnescapeString(i.Enclosure.Url)
 				i.Description = html.UnescapeString(i.Description)
 				i.Comments = html.UnescapeString(i.Comments)
 				items = append(items, i)
