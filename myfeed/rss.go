@@ -66,10 +66,6 @@ func rParse(r io.ReadCloser) (f []Item, e error) {
 	if e == nil && len(feed.Channel) == 0 {
 		e = ErrNotRSSFormat
 	}
-	defer func() {
-		// https://stackoverflow.com/questions/21469163/golang-reading-xml-memory-leak
-		feed = RSSFeed{}
-	}()
 
 	if e == nil {
 		items = items[:0]
