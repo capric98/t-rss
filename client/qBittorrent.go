@@ -149,7 +149,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	}
 	w.Close()
 
-	req, err := http.NewRequest("POST", c.settings["host"]+"/api/v2/torrents/upload", &b)
+	req, err := http.NewRequest("POST", c.settings["host"]+"/api/v2/torrents/add", &b)
 	if err != nil {
 		return err
 	}
