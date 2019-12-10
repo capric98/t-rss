@@ -94,7 +94,7 @@ func (c *QBType) init() error {
 		return nil
 	}
 
-	resp, err := c.client.PostForm(c.settings["host"]+"/login", url.Values{
+	resp, err := c.client.PostForm(c.settings["host"]+"/api/v2/auth/login", url.Values{
 		"username": {c.settings["username"]},
 		"password": {c.settings["password"]},
 	})
@@ -149,7 +149,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	}
 	w.Close()
 
-	req, err := http.NewRequest("POST", c.settings["host"]+"/command/upload", &b)
+	req, err := http.NewRequest("POST", c.settings["host"]+"/api/v2/torrents/upload", &b)
 	if err != nil {
 		return err
 	}
