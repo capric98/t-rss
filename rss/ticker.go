@@ -88,5 +88,4 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 
 	log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
 	ch <- rssFeed
-	//runtime.GC()
 }

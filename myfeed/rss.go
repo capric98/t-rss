@@ -84,5 +84,9 @@ func rParse(r io.ReadCloser) (f []Item, e error) {
 		}
 		f = items
 	}
+
+	// https://stackoverflow.com/questions/21469163/golang-reading-xml-memory-leak
+	feed = RSSFeed{}
+
 	return
 }

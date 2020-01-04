@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,11 +19,15 @@ func (w *worker) run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for tasks := range w.ticker {
-		w.log(fmt.Sprintf("Run task: %s.", w.name), 1)
+		w.log(fmt.Sprintf("Run task: %s.", w.name), 0)
 
 		acCount := 0
 		rjCount := 0
 		for _, v := range tasks {
+			w.log(" + debug Title = "+v.Title, 0)
+			w.log(" + debug URL   = "+v.Enclosure.Url, 0)
+			w.log(" + debug Size  = "+strconv.FormatInt(v.Enclosure.Len, 10), 0)
+
 			// Check if item had been accepted yet.
 			if _, err := os.Stat(CDir + v.GUID.Value); !os.IsNotExist(err) {
 				rjCount++
@@ -40,7 +45,7 @@ func (w *worker) run(wg *sync.WaitGroup) {
 				continue
 			}
 			if w.Config.Accept != nil && (w.Config.Strict) && (!checkRegexp(v, w.Config.Accept)) {
-				w.log(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.", w.name, v.Title), 1)
+				w.log(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.", w.name, v.Title), 0)
 				rjCount++
 				continue
 			}
@@ -60,7 +65,7 @@ func (w *worker) run(wg *sync.WaitGroup) {
 				go w.save(v)
 			}
 		}
-		w.log(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", w.name, acCount, rjCount), 1)
+		w.log(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", w.name, acCount, rjCount), 0)
 		if Learn {
 			return
 		}
