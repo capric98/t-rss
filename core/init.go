@@ -77,7 +77,7 @@ func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 			nw.loglevel = 0
 		}
 		if nw.Config.RSSLink != "" {
-			nw.ticker = rss.NewTicker(k, v.RSSLink, v.Cookie, v.Interval, nw.client, ctx)
+			nw.ticker = rss.NewTicker(k, v.RSSLink, v.Cookie, v.Interval, nw.client, ctx, DMode)
 		}
 
 		go nw.run(&wg)

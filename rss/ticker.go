@@ -17,9 +17,10 @@ type ticker struct {
 	interval     time.Duration
 	ctx          context.Context
 	ftype        int
+	debug        bool
 }
 
-func NewTicker(name string, link string, cookie string, interval time.Duration, wc *http.Client, ctx context.Context) (ch chan []torrents.Individ) {
+func NewTicker(name string, link string, cookie string, interval time.Duration, wc *http.Client, ctx context.Context, debug bool) (ch chan []torrents.Individ) {
 	t := &ticker{
 		name:     name,
 		client:   wc,
@@ -28,6 +29,7 @@ func NewTicker(name string, link string, cookie string, interval time.Duration, 
 		interval: interval,
 		ctx:      ctx,
 		ftype:    myfeed.RSSType,
+		debug:    debug,
 	}
 	ch = make(chan []torrents.Individ)
 	go t.tick(ch)
@@ -86,6 +88,8 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 		rssFeed[k].GUID.Value = myfeed.NameRegularize(rssFeed[k].GUID.Value)
 	}
 
-	log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
+	if t.debug {
+		log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
+	}
 	ch <- rssFeed
 }
