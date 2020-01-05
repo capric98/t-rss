@@ -71,11 +71,16 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	}
 	defer resp.Body.Close()
 	rssFeed, e := myfeed.Parse(resp.Body, t.ftype)
-	if e == myfeed.ErrNotRSSFormat {
-		t.ftype = myfeed.AtomType
-	}
-	if e == myfeed.ErrNotAtomFormat {
-		t.ftype = myfeed.RSSType
+
+	if e != nil {
+		if t.debug {
+			log.Println("myfeed:", e)
+		}
+		if t.ftype == myfeed.AtomType {
+			t.ftype = myfeed.RSSType
+		} else {
+			t.ftype = myfeed.AtomType
+		}
 	}
 
 	for k := range rssFeed {
