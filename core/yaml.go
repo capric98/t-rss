@@ -22,23 +22,32 @@ func parse(data []byte) (conf map[string]Conf) {
 		tmp := Conf{
 			RSSLink:     v.RSSLink,
 			Cookie:      v.Cookie,
-			Strict:      v.Strict,
 			Interval:    time.Duration(v.Interval) * time.Second,
 			Latency:     time.Duration(v.Latency) * time.Second,
 			Download_to: v.Download_to,
 			Min:         UConvert(v.Content_size.Min),
 			Max:         UConvert(v.Content_size.Max),
-			Accept:      regcompile(v.Regexp.Accept),
-			Reject:      regcompile(v.Regexp.Reject),
-			DeleteT:     regcompile(v.EditTracker.Delete),
-			AddT:        v.EditTracker.Add,
-			Client:      parseClient(v.Client),
+			Quota: Quota{
+				Num:  v.Quota.Num,
+				Size: UConvert(v.Quota.Size),
+			},
+			Accept:  regcompile(v.Regexp.Accept),
+			Reject:  regcompile(v.Regexp.Reject),
+			DeleteT: regcompile(v.EditTracker.Delete),
+			AddT:    v.EditTracker.Add,
+			Client:  parseClient(v.Client),
 		}
 		if v.Interval == 0 {
 			tmp.Interval = 30 * time.Second
 		}
 		if tmp.Max == 0 {
-			tmp.Max = 1024 * 1024 * 1024 * 1024 // 1TiB
+			tmp.Max = 0x7FFFFFFFFFFFFFFF
+		}
+		if tmp.Quota.Size == 0 {
+			tmp.Quota.Size = 0x7FFFFFFFFFFFFFFF
+		}
+		if tmp.Quota.Num == 0 {
+			tmp.Quota.Num = 65535
 		}
 		conf[k] = tmp
 	}
@@ -72,12 +81,12 @@ func UConvert(s string) int64 {
 	return spNum
 }
 
-func regcompile(s []string) []*regexp.Regexp {
+func regcompile(s []string) []Reg {
 	if s == nil {
 		return nil
 	}
 
-	rs := make([]*regexp.Regexp, 0, 1)
+	rs := make([]Reg, 0, 1)
 
 	for _, v := range s {
 		r, e := regexp.Compile(v)
@@ -85,7 +94,7 @@ func regcompile(s []string) []*regexp.Regexp {
 			log.Println("Failed to build regexp:", v)
 			log.Fatal(e)
 		}
-		rs = append(rs, r)
+		rs = append(rs, Reg{C: v, R: r})
 	}
 
 	return rs

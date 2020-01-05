@@ -21,12 +21,14 @@ Name0:                             # 任务名称，随意取
       - https://example.com/       #*
       - https://example2.com/      #*
       - https://example3.com/      #*
-  strict: no                       #*严格模式，某些rss给出文件大小均为0，在strict: yes下拒绝(?)
   content_size:                    #*体积过滤，默认单位MB，同时支持以下写法：
     min: 2048                      #*min: "2GB"  or  min: "2G"
     max: 9999                      #*max: "1TB"  blabla...
+  quota:                           #*单次rss限额
+    num: 65535                     #*采用数量限制，默认65535
+    size: maxint64                 #*采用体积限制，默认0x7FFFFFFFFFFFFFFF，格式与前min/max相同
   regexp:                          #*正则表达式，可不配置
-    accept:                        #*接受符合以下正则表达式列表的种子，仅在strict: yes时起作用
+    accept:                        #*若配置该项目，则只有同时符合两者的种子被采用
       - Vol.*?Fin
     reject:                        #*拒绝符合以下正则表达式列表的种子
       - Test

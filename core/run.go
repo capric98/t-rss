@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -18,8 +17,11 @@ import (
 func (w *worker) run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	var q Quota
+
 	for tasks := range w.ticker {
 		w.log(fmt.Sprintf("Run task: %s.", w.name), 0)
+		q = w.Config.Quota
 
 		acCount := 0
 		rjCount := 0
@@ -39,13 +41,13 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			}
 
 			// Check regexp filter.
-			if (w.Config.Reject != nil) && (checkRegexp(v, w.Config.Reject)) {
-				w.log(fmt.Sprintf("%s: Reject item \"%s\"", w.name, v.Title), 1)
+			if result, r := checkRegexp(v, w.Config.Reject); result {
+				w.log(fmt.Sprintf("%s: Reject item \"%s\", reject regexp match \"%s\".", w.name, v.Title, r), 1)
 				rjCount++
 				continue
 			}
-			if w.Config.Accept != nil && (w.Config.Strict) && (!checkRegexp(v, w.Config.Accept)) {
-				w.log(fmt.Sprintf("%s: Cannot accept item \"%s\" due to strict mode.", w.name, v.Title), 0)
+			if result, _ := checkRegexp(v, w.Config.Accept); (w.Config.Accept != nil) && !result {
+				w.log(fmt.Sprintf("%s: Reject item \"%s\", accept regexp no match.", w.name, v.Title), 1)
 				rjCount++
 				continue
 			}
@@ -58,11 +60,19 @@ func (w *worker) run(wg *sync.WaitGroup) {
 				continue
 			}
 
-			w.log(fmt.Sprintf("%s: Accept item \"%s\"", w.name, v.Title), 1)
-			acCount++
+			if q.Num > 0 && q.Size >= v.Enclosure.Len {
+				w.log(fmt.Sprintf("%s: Accept item \"%s\"", w.name, v.Title), 1)
+				acCount++
+				q.Num--
+				q.Size -= v.Enclosure.Len
+			} else {
+				rjCount++
+				w.log(fmt.Sprintf("%s: Quota exceeded, drop item \"%s\"", w.name, v.Title), 1)
+				continue
+			}
 
 			if !Learn {
-				go w.save(v)
+				go w.save(v, &q)
 			}
 		}
 		w.log(fmt.Sprintf("Task %s: Accept %d item(s), reject %d item(s).", w.name, acCount, rjCount), 0)
@@ -72,23 +82,23 @@ func (w *worker) run(wg *sync.WaitGroup) {
 	}
 }
 
-func checkRegexp(v torrents.Individ, reg []*regexp.Regexp) bool {
+func checkRegexp(v torrents.Individ, reg []Reg) (bool, string) {
 	for _, r := range reg {
-		if r.MatchString(v.Title) {
-			return true
+		if r.R.MatchString(v.Title) {
+			return true, r.C
 		}
 		// matched, _ = regexp.MatchString(r, v.Description)
 		// if matched {
 		// 	return true
 		// }
-		if r.MatchString(v.Author) {
-			return true
+		if r.R.MatchString(v.Author) {
+			return true, r.C
 		}
 	}
-	return false
+	return false, ""
 }
 
-func (w *worker) save(t torrents.Individ) {
+func (w *worker) save(t torrents.Individ, quota *Quota) {
 	defer func() {
 		if e := recover(); e != nil {
 			w.log(e, 1)
@@ -104,11 +114,18 @@ func (w *worker) save(t torrents.Individ) {
 		w.log(fmt.Sprintf("Save: %v", err), 1)
 		return
 	}
-	if t.Enclosure.Len == 0 && w.Config.Strict {
+	if t.Enclosure.Len == 0 {
 		if pass, tlen := checkTLength(data, w.Config.Min, w.Config.Max); !pass {
 			w.log(fmt.Sprintf("%s: Reject item \"%s\" due to TORRENT content_size not fit.", w.name, t.Title), 1)
 			w.log(fmt.Sprintf("%d vs [%d,%d]", tlen, w.Config.Min, w.Config.Max), 0)
 			return
+		} else {
+			w.log(fmt.Sprintf(" + double check: \"%s\" torrent content_size=%9d", t.Title, tlen), 0)
+			if quota.Size >= t.Enclosure.Len {
+				quota.Size -= t.Enclosure.Len
+			} else {
+				w.log(fmt.Sprintf(" + Quota exceeded, drop item \"%s\"", t.Title), 1)
+			}
 		}
 	}
 
@@ -197,6 +214,7 @@ func checkTLength(data []byte, min int64, max int64) (bool, int64) {
 	pl := (info.Dict("piece length")).Value()
 	ps := int64(len((info.Dict("pieces")).BStr())) / 20
 	length := pl * ps
+
 	if min < length && length < max {
 		return true, length
 	}

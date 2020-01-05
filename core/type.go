@@ -39,23 +39,37 @@ type ymlConf struct {
 		Accept []string `yaml:"accept"`
 		Reject []string `yaml:"reject"`
 	} `yaml:"regexp"`
+	Quota struct {
+		Num  int    `yaml:"num"`
+		Size string `yaml:"size"`
+	} `yaml:"quota"`
 	Client map[string]clientConfig `yaml:"client"`
+}
+
+type Reg struct {
+	R *regexp.Regexp
+	C string
+}
+
+type Quota struct {
+	Num  int
+	Size int64
 }
 
 type Conf struct {
 	RSSLink     string
 	Cookie      string
-	Strict      bool
 	Interval    time.Duration
 	Latency     time.Duration
 	Download_to string
 
-	Min int64
-	Max int64
+	Min   int64
+	Max   int64
+	Quota Quota
 
-	Accept  []*regexp.Regexp
-	Reject  []*regexp.Regexp
-	DeleteT []*regexp.Regexp
+	Accept  []Reg
+	Reject  []Reg
+	DeleteT []Reg
 	AddT    []string
 	Client  []client.Client
 }

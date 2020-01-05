@@ -22,7 +22,8 @@ func (w *worker) editTorrent(data []byte) (en []byte, e error) {
 	if w.Config.DeleteT != nil {
 		announce := torrent.Dict("announce")
 		for _, v := range w.Config.DeleteT {
-			if v.Match(announce.BStr()) {
+			if v.R.Match(announce.BStr()) {
+				w.log(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete announce.", announce.BStr(), v.C), 0)
 				torrent.Delete("announce")
 				break
 			}
@@ -32,7 +33,8 @@ func (w *worker) editTorrent(data []byte) (en []byte, e error) {
 			for i := announceList.Len(); i > 0; i-- {
 				subList := announceList.List(i - 1)
 				for s := subList.Len(); s > 0; s-- {
-					if v.Match(subList.List(s - 1).BStr()) {
+					if v.R.Match(subList.List(s - 1).BStr()) {
+						w.log(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete part of announce-list.", subList.List(s-1).BStr(), v.C), 0)
 						subList.DeleteN(s - 1)
 						break
 					}
@@ -47,10 +49,10 @@ func (w *worker) editTorrent(data []byte) (en []byte, e error) {
 		}
 
 	}
-	w.log("Success Delete", 1)
+
 	if w.Config.AddT != nil && len(w.Config.AddT) >= 1 {
 		if torrent.Dict("announce") == nil {
-			w.log("announce add", 1)
+			w.log(" + edit tracker: announce add "+"\""+w.Config.AddT[0]+"\"", 0)
 			_ = torrent.AddPart("announce", bencode.NewBStr(w.Config.AddT[0]))
 			w.Config.AddT = w.Config.AddT[1:]
 		}
@@ -64,8 +66,7 @@ func (w *worker) editTorrent(data []byte) (en []byte, e error) {
 		list := torrent.Dict("announce-list")
 		list.AnnounceList(w.Config.AddT)
 	}
-	w.log("Success Add", 1)
-	w.log(torrent.Check(), 1)
+	w.log(fmt.Sprintf(" + edit tracker: check %v", torrent.Check()), 0)
 
 	return torrent.Encode()
 }

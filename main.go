@@ -20,6 +20,7 @@ var (
 func main() {
 	flag.Parse()
 
+	// debug: net/http/pprof
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
