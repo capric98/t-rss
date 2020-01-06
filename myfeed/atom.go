@@ -50,7 +50,8 @@ func aParse(r io.ReadCloser) (f []Item, e error) {
 	decoder := xml.NewDecoder(r)
 	decoder.CharsetReader = charset.NewReaderLabel
 	e = decoder.Decode(&feed)
-	if e == nil && len(feed) == 0 {
+
+	if (len(feed) == 0) || (e == nil && len(feed[0].Items) == 0) {
 		e = ErrNotAtomFormat
 	}
 
