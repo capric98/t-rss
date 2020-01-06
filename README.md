@@ -1,4 +1,4 @@
-## GoRSS
+## t-rss
 [中文文档](README-zh_CN.md)
 ### Build
 ```

@@ -46,7 +46,9 @@ Name0:                             # 任务名称，随意取
       paused: true                 #*是否以暂停状态添加种子
       savepath: "/home/Downloads/" #*下载目录
     This_is_another_client:        #*可以有多个客户端
-      ...
+      ...                          #*deluge初步支持，2.x版本未测试
+                                   #*具体配置项参见 https://bit.ly/2tzS2Gi
+                                   #*或者 https://bit.ly/36yJFcI
 Name1:                             #*一个配置文件里可以有多个任务
   rss: http://example.com/rss.xml
   content_size:
