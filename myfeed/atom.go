@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"html"
 	"io"
+
+	"golang.org/x/net/html/charset"
 )
 
 type AtomFeed struct {
@@ -44,7 +46,10 @@ type aItem struct {
 
 func aParse(r io.ReadCloser) (f []Item, e error) {
 	var feed []AtomFeed
-	e = xml.NewDecoder(r).Decode(&feed)
+
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	e = decoder.Decode(&feed)
 	if e == nil && len(feed) == 0 {
 		e = ErrNotAtomFormat
 	}

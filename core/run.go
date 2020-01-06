@@ -53,7 +53,7 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			}
 
 			// Check content_size.
-			if !(v.Enclosure.Len >= w.Config.Min && v.Enclosure.Len <= w.Config.Max) {
+			if !(v.Enclosure.Len >= w.Config.Min && v.Enclosure.Len <= w.Config.Max) && v.Enclosure.Len != 0 {
 				w.log(fmt.Sprintf("%s: Reject item \"%s\" due to content_size not fit.", w.name, v.Title), 1)
 				w.log(fmt.Sprintf("%d vs [%d,%d]", v.Enclosure.Len, w.Config.Min, w.Config.Max), 0)
 				rjCount++

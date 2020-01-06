@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"html"
 	"io"
+
+	"golang.org/x/net/html/charset"
 )
 
 type RSSFeed struct {
@@ -62,7 +64,10 @@ type rItem struct {
 
 func rParse(r io.ReadCloser) (f []Item, e error) {
 	var feed RSSFeed
-	e = xml.NewDecoder(r).Decode(&feed)
+
+	decoder := xml.NewDecoder(r)
+	decoder.CharsetReader = charset.NewReaderLabel
+	e = decoder.Decode(&feed)
 	if e == nil && len(feed.Channel) == 0 {
 		e = ErrNotRSSFormat
 	}
