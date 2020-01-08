@@ -72,6 +72,14 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	defer resp.Body.Close()
 	rssFeed, e := myfeed.Parse(resp.Body, t.ftype)
 
+	// debug, e := ioutil.ReadAll(resp.Body)
+	// resp.Body.Close()
+	// if e != nil {
+	// 	return
+	// }
+	// log.Println(string(debug))
+	// rssFeed, e := myfeed.Parse(ioutil.NopCloser(bytes.NewReader(debug)), t.ftype)
+
 	if e != nil {
 		if t.debug {
 			log.Println("myfeed:", e)
