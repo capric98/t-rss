@@ -78,6 +78,8 @@ func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 		}
 		if nw.Config.RSSLink != "" {
 			nw.ticker = rss.NewTicker(k, v.RSSLink, v.Cookie, v.Interval, nw.client, ctx, DMode)
+		} else {
+			log.Fatal(k, " has no rss link configured!")
 		}
 
 		go nw.run(&wg)

@@ -100,8 +100,9 @@ func regcompile(s []string) []Reg {
 	return rs
 }
 
-func parseClient(raw map[string]clientConfig) []client.Client {
-	var list = make([]client.Client, 0, 1)
+func parseClient(raw map[string]clientConfig) (list []client.Client) {
+	list = make([]client.Client, 0, 1)
+
 	for k, v := range raw {
 		if v["type"] == nil {
 			log.Panicln("Invalid config: Client should have type attribute.")
@@ -113,5 +114,6 @@ func parseClient(raw map[string]clientConfig) []client.Client {
 			list = append(list, client.NewDeClient(k, v))
 		}
 	}
+
 	return list
 }

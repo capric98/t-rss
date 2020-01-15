@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -100,6 +101,12 @@ func (c *DeType) Label() string {
 }
 
 func NewDeClient(key string, m map[string]interface{}) *DeType {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Fatal("new deluge client:", p)
+		}
+	}()
+
 	var nc = &DeType{
 		name:     "Deluge",
 		label:    key,
@@ -135,22 +142,28 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 		}
 		failcount++
 		if failcount == 3 {
-			log.Fatal(err)
+			log.Fatal("Init deluge client:", err)
 		}
 	}
 	return nc
 }
 
+func check_conn(c *tls.Conn, e error) *tls.Conn {
+	if e != nil {
+		log.Panic(e)
+	}
+	return c
+}
+
 func (c *DeType) init() (conn *tls.Conn, e error) {
 	defer func() {
 		if p := recover(); p != nil {
-			e = p.(error)
+			e = fmt.Errorf("%v", p)
 		}
 	}()
 
-	conn, e = c.newConn()
-
-	conn, e = c.detectVersion(conn)
+	conn = check_conn(c.newConn())
+	conn = check_conn(c.detectVersion(conn))
 	//log.Println("Deluge client init with error", e)
 	//log.Println("Deluge version:", c.version)
 	//log.Println("Protocal version:", c.protoVer)
