@@ -31,12 +31,12 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			w.log(" + debug Size  = "+strconv.FormatInt(v.Enclosure.Len, 10), 0)
 
 			// Check if item had been accepted yet.
-			if _, err := os.Stat(CDir + v.GUID.Value); !os.IsNotExist(err) {
+			if _, err := os.Stat(CDir + w.name + v.GUID.Value); !os.IsNotExist(err) {
 				rjCount++
 				continue
 			} else {
 				if !TestOnly {
-					w.log(savehistory(CDir+v.GUID.Value), 0)
+					w.log(savehistory(CDir+w.name+v.GUID.Value), 0)
 				}
 			}
 

@@ -1,5 +1,5 @@
-## GoRSS
-GoRSS是一个自动rss bt种子文件的程序，相比flexget丰富的功能，GoRSS功能较为精简，同时体积更小、占用资源更少，支持自动将rss得到的种子文件添加至bt客户端（目前支持qBittorrent和Deluge（未完整测试过）），将来会加入从irc获取资源信息的功能（咕咕咕）
+## t-rss
+t-rss是一个自动rss bt种子文件的程序，相比flexget丰富的功能，t-rss功能较为精简，同时体积更小、占用资源更少，支持自动将rss得到的种子文件添加至bt客户端（目前支持qBittorrent和Deluge（未完整测试过）），将来会加入从irc获取资源信息的功能（irc已经不想写了。）
 
 ## 安装
 首先[下载](https://github.com/capric98/t-rss/releases)最新的pre-release or release中系统/架构对应的压缩包
@@ -61,11 +61,7 @@ Name2:
 ### 运行
 在RSS目录下运行二进制文件即可，默认使用同目录下的config.yml作为配置文件，历史保留在同目录下的`.RSS-history`目录内；也可以nohup或者注册成服务什么的。。
 
-[gofeed](https://github.com/mmcdole/gofeed)
-
 [go-yaml](https://github.com/go-yaml/yaml)
-
-[color](https://github.com/fatih/color)
 
 [go-rencode](https://github.com/gdm85/go-rencode)
 

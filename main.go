@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
+	// "log"
+	// "net/http"
+	// _ "net/http/pprof"
 
 	"github.com/capric98/t-rss/core"
 )
@@ -21,9 +21,9 @@ func main() {
 	flag.Parse()
 
 	// debug: net/http/pprof
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 
 	core.Init(DMode, TestOnly, Learn, ConfigPath, CDir)
 }
