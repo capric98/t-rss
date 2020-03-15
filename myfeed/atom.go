@@ -44,7 +44,7 @@ type aItem struct {
 	Source   string `xml:"-"`
 }
 
-func aParse(r io.ReadCloser) (f []Item, e error) {
+func aParse(r io.Reader) (f []Item, e error) {
 	var feed []AtomFeed
 
 	decoder := xml.NewDecoder(r)

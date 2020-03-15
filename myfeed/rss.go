@@ -62,7 +62,7 @@ type rItem struct {
 	Source   string `xml:"source"`
 }
 
-func rParse(r io.ReadCloser) (f []Item, e error) {
+func rParse(r io.Reader) (f []Item, e error) {
 	var feed RSSFeed
 
 	decoder := xml.NewDecoder(r)

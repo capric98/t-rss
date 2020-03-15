@@ -12,7 +12,7 @@ var (
 	items = []Item{}
 )
 
-func Parse(r io.ReadCloser, ftype int) (f []Item, e error) {
+func Parse(r io.Reader, ftype int) (f []Item, e error) {
 	if ftype == RSSType {
 		return rParse(r)
 	}
