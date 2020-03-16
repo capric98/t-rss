@@ -67,53 +67,54 @@ func (t *ticker) fetch(req *http.Request, ch chan []torrents.Individ) {
 	}()
 	startT := time.Now()
 
-	resp, e := t.client.Do(req)
-	if e != nil {
-		return
-	}
-	defer resp.Body.Close()
-
 	var respFeed []myfeed.Item
 
-	if t.ftype == -1 {
-		fbody, _ := ioutil.ReadAll(resp.Body)
-		rfeed, fe := myfeed.Parse(bytes.NewReader(fbody), myfeed.RSSType)
-		afeed, ae := myfeed.Parse(bytes.NewReader(fbody), myfeed.AtomType)
-		if fe == nil {
-			t.ftype = myfeed.RSSType
-			respFeed = rfeed
-		} else {
-			if ae == nil {
-				t.ftype = myfeed.AtomType
-				respFeed = afeed
-			}
+	for counter := 0; counter < 5 && respFeed == nil; counter++ {
+		resp, e := t.client.Do(req)
+		if e != nil {
+			return
 		}
-	} else {
-		respFeed, e = myfeed.Parse(resp.Body, t.ftype)
-	}
 
-	if e != nil {
-		if t.debug {
+		if t.ftype == -1 {
+			fbody, _ := ioutil.ReadAll(resp.Body)
+			rfeed, fe := myfeed.Parse(bytes.NewReader(fbody), myfeed.RSSType)
+			afeed, ae := myfeed.Parse(bytes.NewReader(fbody), myfeed.AtomType)
+			if fe == nil {
+				t.ftype = myfeed.RSSType
+				respFeed = rfeed
+			} else {
+				if ae == nil {
+					t.ftype = myfeed.AtomType
+					respFeed = afeed
+				}
+			}
+		} else {
+			respFeed, e = myfeed.Parse(resp.Body, t.ftype)
+		}
+
+		resp.Body.Close()
+		if e != nil {
 			log.Println("myfeed:", e)
 		}
 	}
+
 	if respFeed == nil {
-		log.Println("myfeed: nill")
-	}
-
-	for k := range respFeed {
-		if respFeed[k].Enclosure.Url == "" {
-			respFeed[k].Enclosure.Url = respFeed[k].Link
+		log.Println("myfeed: Got nil result, please consider to retry latter.")
+	} else {
+		for k := range respFeed {
+			if respFeed[k].Enclosure.Url == "" {
+				respFeed[k].Enclosure.Url = respFeed[k].Link
+			}
+			if respFeed[k].GUID.Value == "" {
+				respFeed[k].GUID.Value = myfeed.NameRegularize(respFeed[k].Title)
+			}
+			respFeed[k].GUID.Value = myfeed.NameRegularize(respFeed[k].GUID.Value)
 		}
-		if respFeed[k].GUID.Value == "" {
-			respFeed[k].GUID.Value = myfeed.NameRegularize(respFeed[k].Title)
+
+		if t.debug {
+			log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
 		}
-		respFeed[k].GUID.Value = myfeed.NameRegularize(respFeed[k].GUID.Value)
-	}
 
-	if t.debug {
-		log.Printf("%s fetched in %7.2fms.", t.name, time.Since(startT).Seconds()*1000.0)
+		ch <- respFeed
 	}
-
-	ch <- respFeed
 }

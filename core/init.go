@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/capric98/t-rss/rss"
 )
@@ -69,7 +68,7 @@ func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 			loglevel: 1,
 			Config:   v,
 			client: &http.Client{
-				Timeout: 30 * time.Second,
+				Timeout: v.Timeout,
 			},
 			cancel: cancel,
 		}

@@ -22,6 +22,7 @@ func parse(data []byte) (conf map[string]Conf) {
 		tmp := Conf{
 			RSSLink:     v.RSSLink,
 			Cookie:      v.Cookie,
+			Timeout:     time.Duration(v.Timeout) * time.Millisecond,
 			Interval:    time.Duration(v.Interval) * time.Second,
 			Latency:     time.Duration(v.Latency) * time.Second,
 			Download_to: v.Download_to,
@@ -36,6 +37,9 @@ func parse(data []byte) (conf map[string]Conf) {
 			DeleteT: regcompile(v.EditTracker.Delete),
 			AddT:    v.EditTracker.Add,
 			Client:  parseClient(v.Client),
+		}
+		if v.Timeout == 0 {
+			tmp.Timeout = 30 * time.Second
 		}
 		if v.Interval == 0 {
 			tmp.Interval = 30 * time.Second

@@ -20,6 +20,7 @@ type worker struct {
 type clientConfig = map[string]interface{}
 
 type ymlConf struct {
+	Timeout     int    `yaml:"timeout"`
 	RSSLink     string `yaml:"rss"`
 	Cookie      string `yaml:"cookie"`
 	EditTracker struct {
@@ -59,6 +60,7 @@ type Quota struct {
 type Conf struct {
 	RSSLink     string
 	Cookie      string
+	Timeout     time.Duration
 	Interval    time.Duration
 	Latency     time.Duration
 	Download_to string
