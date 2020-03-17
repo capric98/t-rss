@@ -8,8 +8,6 @@ import (
 var (
 	ErrNotRSSFormat  = errors.New("Feed: Not a RSS format feed.")
 	ErrNotAtomFormat = errors.New("Feed: Not an Atom format feed.")
-
-	items = []Item{}
 )
 
 func Parse(r io.Reader, ftype int) (f []Item, e error) {

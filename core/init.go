@@ -13,6 +13,10 @@ import (
 	"github.com/capric98/t-rss/rss"
 )
 
+const (
+	VERSION = "0.5.3"
+)
+
 func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 	DMode = *DM
 	TestOnly = *TO
@@ -21,6 +25,7 @@ func Init(DM *bool, TO *bool, L *bool, CP *string, CD *string) {
 	CDir = *CD
 
 	if DMode {
+		log.Println("Version:", VERSION)
 		log.Println("Debug:", DMode)
 		log.Println("Test:", TestOnly)
 		log.Println("Config:", ConfigPath)

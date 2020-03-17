@@ -33,9 +33,9 @@ func NewTicker(name string, link string, cookie string, interval time.Duration, 
 		ftype:    -1,
 		debug:    debug,
 	}
-	ch = make(chan []torrents.Individ)
+	ch = make(chan []torrents.Individ, 2)
 	go t.tick(ch)
-	return ch
+	return
 }
 
 func (t *ticker) tick(ch chan []torrents.Individ) {

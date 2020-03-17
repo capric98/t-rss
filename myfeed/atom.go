@@ -55,8 +55,8 @@ func aParse(r io.Reader) (f []Item, e error) {
 		e = ErrNotAtomFormat
 	}
 
+	items := make([]Item, 0)
 	if e == nil {
-		items = items[:0]
 		for _, ff := range feed {
 			for _, v := range ff.Items {
 				i := Item{

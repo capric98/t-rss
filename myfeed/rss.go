@@ -72,8 +72,8 @@ func rParse(r io.Reader) (f []Item, e error) {
 		e = ErrNotRSSFormat
 	}
 
+	items := make([]Item, 0)
 	if e == nil {
-		items = items[:0]
 		for _, c := range feed.Channel {
 			for _, v := range c.Items {
 				i := Item{
