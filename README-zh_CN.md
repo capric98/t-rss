@@ -38,7 +38,7 @@ Name0:                             # 任务名称，随意取
   client:                          #*自动添加至以下客户端，可不设置
     This_is_a_client:              # 一个任意的标签，不能是纯数字，不可重复
       type: qBittorrent            # 需要指定客户端类型(qBittorrent/Deluge)
-      host: http://127.0.0.1:8080  # webui地址，http/https不可少，可以是远程地址
+      host: http://127.0.0.1:8080  # qBittorrent的webui地址，http/https不可少，可以是远程地址
       username: admin              # webui用户名
       password: adminadmin         # webui密码
       dlLimit: 10M                 #*下载速度限制，单位可以是M/MB等等。。
@@ -46,9 +46,11 @@ Name0:                             # 任务名称，随意取
       paused: true                 #*是否以暂停状态添加种子
       savepath: "/home/Downloads/" #*下载目录
     This_is_another_client:        #*可以有多个客户端
-      ...                          #*deluge初步支持，2.x版本未测试
-                                   #*具体配置项参见 https://bit.ly/2tzS2Gi
-                                   #*或者 https://bit.ly/36yJFcI
+      type: Deluge                 #*deluge初步支持，未经过详细测试
+      host: 127.0.0.1:????         # Deluge的rpc地址及其端口
+      username: xxxx               #*具体配置项参见 https://bit.ly/2tzS2Gi
+      password: xxxx               #*或者 https://bit.ly/36yJFcI
+      ...
 Name1:                             #*一个配置文件里可以有多个任务
   rss: http://example.com/rss.xml
   content_size:
@@ -62,6 +64,5 @@ Name2:
 在RSS目录下运行二进制文件即可，默认使用同目录下的config.yml作为配置文件，历史保留在同目录下的`.RSS-history`目录内；也可以nohup或者注册成服务什么的。。
 
 [go-yaml](https://github.com/go-yaml/yaml)
-
 [go-rencode](https://github.com/gdm85/go-rencode)
 

@@ -66,27 +66,29 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 		}
 	}()
 
-	var try int
 	b64 := base64.StdEncoding.EncodeToString(data)
 
-	for try < 3 {
-		try++
-
-		if conn, err := c.newConn(); err == nil {
-			defer conn.Close()
-			if c.login(conn) != nil {
-				continue
+	for try := 0; try < 3; try++ {
+		if nil == func() (e error) {
+			if conn, err := c.newConn(); err == nil {
+				defer conn.Close()
+				if e = c.login(conn); e != nil {
+					return
+				}
+				if e = c.call("core.add_torrent_file", makeList(name, b64, makeDict(c.settings)), makeDict(nil), conn); e != nil {
+					// c.call("core.add_torrent_file", makeList(name, b64), makeDict(c.settings), conn)
+					// └-> THIS WOULD NOT WORK!!!!!!!
+					//     Thank you Deluge!
+					return
+				}
+				return c.recvResp(conn)
+			} else {
+				return err
 			}
-			if c.call("core.add_torrent_file", makeList(name, b64, makeDict(c.settings)), makeDict(nil), conn) != nil {
-				//c.call("core.add_torrent_file", makeList(name, b64),makeDict(c.settings), conn)
-				//└-> THIS WOULD NOT WORK!!!!!!!
-				//    Thank you Deluge!
-				continue
-			}
-			if c.recvResp(conn) == nil {
-				return nil
-			}
+		}() {
+			return nil
 		}
+
 	}
 
 	return ErrAddFail

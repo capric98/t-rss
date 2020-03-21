@@ -111,11 +111,16 @@ func parseClient(raw map[string]clientConfig) (list []client.Client) {
 		if v["type"] == nil {
 			log.Panicln("Invalid config: Client should have type attribute.")
 		}
-		if v["type"].(string) == "qBittorrent" {
-			list = append(list, client.NewqBclient(k, v))
-		}
-		if v["type"].(string) == "Deluge" {
-			list = append(list, client.NewDeClient(k, v))
+		switch vi := v["type"].(type) {
+		case string:
+			switch vi {
+			case "qBittorrent":
+				list = append(list, client.NewqBclient(k, v))
+			case "Deluge":
+				list = append(list, client.NewDeClient(k, v))
+			}
+		default:
+			log.Panicln("Invalid config: \"type\" should have a string value.")
 		}
 	}
 
