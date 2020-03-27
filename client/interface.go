@@ -34,6 +34,8 @@ func UConvert(s string) string {
 		spNum = spNum * 1024 * 1024 * 1024
 	case unit == "T" || unit == "t" || unit == "TB" || unit == "tB" || unit == "TiB" || unit == "tiB":
 		spNum = spNum * 1024 * 1024 * 1024 * 1024
+	default:
+		spNum = spNum * 1024 * 1024
 	}
 	return fmt.Sprintf("%d", spNum)
 }
