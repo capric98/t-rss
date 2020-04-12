@@ -19,14 +19,15 @@ import (
 )
 
 const (
-	None     = 0
-	WTimeout = 10
-	TimeoutA = 1000 //(ms)
+	none     = 0
+	wTimeout = 10
+	timeoutA = 1000 //(ms)
 	rpcResp  = 1
 	rpcError = 2
 	rpcEvent = 3
 )
 
+// DeType :)
 type DeType struct {
 	settings    map[string]interface{}
 	host        string
@@ -51,14 +52,22 @@ var (
 		"remove_at_ratio", "seed_mode", "sequential_download",
 		"shared", "stop_at_ratio", "stop_ratio", "super_seeding"}
 	//https://github.com/deluge-torrent/deluge/blob/4b29436cd5eabf9af271f3fa6250cd7c91cdbc9d/deluge/core/torrent.py#L133
-	ErrExpectDHeader  = errors.New("Expected D as first byte in reply.")
-	ErrExpectPVHeader = errors.New("Expected protocal version as first byte in reply.")
-	ErrRespIncomplete = errors.New("Expected a longer response than actually got.")
-	ErrUnknownResp    = errors.New("Unknown RPC response.")
-	ErrRPCEvent       = errors.New("Unexpected RPC Event message.")
-	ErrAddFail        = errors.New("Failed to add torrent file after 3 tries.")
+
+	// ErrExpectDHeader :)
+	ErrExpectDHeader = errors.New("Expected D as first byte in reply")
+	// ErrExpectPVHeader :)
+	ErrExpectPVHeader = errors.New("Expected protocal version as first byte in reply")
+	// ErrRespIncomplete :)
+	ErrRespIncomplete = errors.New("Expected a longer response than actually got")
+	// ErrUnknownResp :)
+	ErrUnknownResp = errors.New("Unknown RPC response")
+	// ErrRPCEvent :)
+	ErrRPCEvent = errors.New("Unexpected RPC Event message")
+	// ErrAddFail :)
+	ErrAddFail = errors.New("Failed to add torrent file after 3 tries")
 )
 
+// Add :)
 func (c *DeType) Add(data []byte, name string) (e error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -70,7 +79,8 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 
 	for try := 0; try < 3; try++ {
 		if nil == func() (e error) {
-			if conn, err := c.newConn(); err == nil {
+			conn, err := c.newConn()
+			if err == nil {
 				defer conn.Close()
 				if e = c.login(conn); e != nil {
 					return
@@ -82,9 +92,8 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 					return
 				}
 				return c.recvResp(conn)
-			} else {
-				return err
 			}
+			return err
 		}() {
 			return nil
 		}
@@ -94,14 +103,7 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 	return ErrAddFail
 }
 
-func (c *DeType) Name() string {
-	return c.name
-}
-
-func (c *DeType) Label() string {
-	return c.label
-}
-
+// NewDeClient :)
 func NewDeClient(key string, m map[string]interface{}) *DeType {
 	defer func() {
 		if p := recover(); p != nil {
@@ -150,7 +152,7 @@ func NewDeClient(key string, m map[string]interface{}) *DeType {
 	return nc
 }
 
-func check_conn(c *tls.Conn, e error) *tls.Conn {
+func checkConn(c *tls.Conn, e error) *tls.Conn {
 	if e != nil {
 		log.Panic(e)
 	}
@@ -164,8 +166,8 @@ func (c *DeType) init() (conn *tls.Conn, e error) {
 		}
 	}()
 
-	conn = check_conn(c.newConn())
-	conn = check_conn(c.detectVersion(conn))
+	conn = checkConn(c.newConn())
+	conn = checkConn(c.detectVersion(conn))
 	//log.Println("Deluge client init with error", e)
 	//log.Println("Deluge version:", c.version)
 	//log.Println("Protocal version:", c.protoVer)
@@ -217,7 +219,7 @@ func (c *DeType) sendCall(version int, protoVer int, method string, args rencode
 	if version == 2 {
 		// need to send a header to client
 		switch protoVer {
-		case None:
+		case none:
 			req.WriteRune('D')
 			_ = binary.Write(&req, binary.BigEndian, int32(z.Len()))
 		case 1:
@@ -228,7 +230,7 @@ func (c *DeType) sendCall(version int, protoVer int, method string, args rencode
 
 	_, _ = req.Write(z.Bytes())
 
-	_ = conn.SetDeadline(time.Now().Add(WTimeout * time.Second))
+	_ = conn.SetDeadline(time.Now().Add(wTimeout * time.Second))
 
 	if _, err := conn.Write(req.Bytes()); err != nil {
 		return err
@@ -241,14 +243,14 @@ func (c *DeType) detectVersion(conn *tls.Conn) (*tls.Conn, error) {
 	sign := make([]byte, 1)
 
 	now := time.Now()
-	_ = c.sendCall(1, None, "daemon.info", makeList(), makeDict(nil), conn)
-	_ = c.sendCall(2, None, "daemon.info", makeList(), makeDict(nil), conn)
+	_ = c.sendCall(1, none, "daemon.info", makeList(), makeDict(nil), conn)
+	_ = c.sendCall(2, none, "daemon.info", makeList(), makeDict(nil), conn)
 	_ = c.sendCall(2, 1, "daemon.info", makeList(), makeDict(nil), conn)
 
 	_ = conn.SetDeadline(time.Now().Add(1 * time.Second))
 	_, err := conn.Read(sign)
 
-	c.rttx4 = time.Since(now) + (TimeoutA * time.Millisecond)
+	c.rttx4 = time.Since(now) + (timeoutA * time.Millisecond)
 
 	if err != nil {
 		return nil, err
@@ -256,13 +258,13 @@ func (c *DeType) detectVersion(conn *tls.Conn) (*tls.Conn, error) {
 
 	if sign[0] == byte('D') {
 		c.version = 2
-		c.protoVer = None
+		c.protoVer = none
 	} else if sign[0] == 1 {
 		c.version = 2
 		c.protoVer = 1
 	} else {
 		c.version = 1
-		c.protoVer = None
+		c.protoVer = none
 		//Deluge 1 doesn't recover well from the bad request. Re-connect!
 		conn.Close()
 		return c.newConn()
@@ -299,7 +301,7 @@ func (c *DeType) recvResp(conn *tls.Conn) (e error) {
 		}
 
 		switch c.protoVer {
-		case None:
+		case none:
 			if (sign.Bytes())[0] != byte('D') {
 				return ErrExpectDHeader
 			}

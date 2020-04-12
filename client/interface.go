@@ -5,12 +5,17 @@ import (
 	"unicode"
 )
 
-type Client interface {
-	Add(b []byte, name string) error
-	Name() string
-	Label() string
+// Client :)
+type Client struct {
+	Type, Label string
+	client      client
 }
 
+type client interface {
+	Add(b []byte, name string) error
+}
+
+// UConvert :)
 func UConvert(s string) string {
 	if s == "" {
 		return ""

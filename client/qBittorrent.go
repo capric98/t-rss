@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// QBType :)
 type QBType struct {
 	client   *http.Client
 	settings map[string]string
@@ -28,13 +29,7 @@ var (
 	privateIPBlocks []*net.IPNet
 )
 
-func (c *QBType) Name() string {
-	return c.name
-}
-func (c *QBType) Label() string {
-	return c.label
-}
-
+// NewqBclient :)
 func NewqBclient(key string, m map[string]interface{}) *QBType {
 	nc := &QBType{
 		client:   nil,
@@ -106,6 +101,7 @@ func (c *QBType) init() error {
 	return nil
 }
 
+// Add :)
 func (c *QBType) Add(data []byte, filename string) (e error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -115,15 +111,15 @@ func (c *QBType) Add(data []byte, filename string) (e error) {
 
 	var try int
 	for {
-		if e = c.call(data, filename); e == nil {
+		e = c.call(data, filename)
+		if e == nil {
 			return
-		} else {
-			try++
-			if try == 3 {
-				return
-			}
-			_ = c.init()
 		}
+		try++
+		if try == 3 {
+			return
+		}
+		_ = c.init()
 	}
 }
 
@@ -135,7 +131,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	for _, v := range qBparalist {
 		if c.settings[v] != "" {
 			if w.WriteField(v, c.settings[v]) != nil {
-				return fmt.Errorf("Failed to write field %s!", v)
+				return fmt.Errorf("Failed to write field %s", v)
 			}
 		}
 	}
