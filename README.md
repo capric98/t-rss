@@ -74,3 +74,6 @@ Name2:
 
 [go-rencode](https://github.com/gdm85/go-rencode)
 
+[logrus](https://github.com/sirupsen/logrus)
+
+[go-colorable](https://github.com/mattn/go-colorable)

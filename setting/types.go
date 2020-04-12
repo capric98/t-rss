@@ -5,8 +5,14 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/capric98/t-rss/unit"
 	"gopkg.in/yaml.v2"
 )
+
+// Duration wraps time.Duration
+type Duration struct {
+	T time.Duration
+}
 
 // C :)
 type C struct {
@@ -21,10 +27,10 @@ type Global struct {
 		Save  string `yaml:"save_to"`
 	} `yaml:"log"`
 	History struct {
-		MaxAge time.Duration `yaml:"max_age"`
-		Save   string        `yaml:"save_to"`
+		MaxAge Duration `yaml:"max_age"`
+		Save   string   `yaml:"save_to"`
 	} `yaml:"history"`
-	Timeout time.Duration `yaml:"timeout"`
+	Timeout Duration `yaml:"timeout"`
 }
 
 // Task is task part.
@@ -93,5 +99,28 @@ type Tracker struct {
 func Parse(r io.Reader) (config *C, e error) {
 	config = new(C)
 	e = yaml.NewDecoder(r).Decode(config)
+	return
+}
+
+// UnmarshalYAML :)
+func (t *Duration) UnmarshalYAML(uf func(interface{}) error) (e error) {
+	var s string
+	e = uf(&s)
+	if e != nil {
+		return
+	}
+	t.T = unit.ParseDuration(s)
+	return nil
+}
+
+// UnmarshalYAML :)
+func (r *Reg) UnmarshalYAML(uf func(interface{}) error) (e error) {
+	var s string
+	e = uf(&s)
+	if e != nil {
+		return
+	}
+	r.C = s
+	r.R, e = regexp.Compile(s)
 	return
 }
