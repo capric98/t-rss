@@ -1,7 +1,7 @@
 GLOBAL:
   log:
-    level: warn # no/warn/info/debug
-    save_to: ~/home/.t-rss/log/warn.log
+    level: debug # no/warn/info/debug
+    save_to: #~/home/.t-rss/log/warn.log
   history:
     max_age: 30d # {int}s/m/h/d
     save_to: ~/home/.t-rss/history/
