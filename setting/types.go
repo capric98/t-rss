@@ -38,14 +38,16 @@ type Task struct {
 	Rss      *Rss     `yaml:"rss"`
 	Filter   Filter   `yaml:"filter"`
 	Quota    Quota    `yaml:"quota"`
+	Edit     *Edit    `yaml:"edit"`
 	Receiver Receiver `yaml:"receiver"`
 }
 
 // Rss :)
 type Rss struct {
-	URL     string            `yaml:"url"`
-	Method  string            `yaml:"method"`
-	Headers map[string]string `yaml:"headers"`
+	URL      string            `yaml:"url"`
+	Method   string            `yaml:"method"`
+	Headers  map[string]string `yaml:"headers"`
+	Interval Duration          `yaml:"interval"`
 }
 
 // Filter :)
@@ -67,7 +69,7 @@ type Edit struct {
 
 // Receiver defines tasks' receiver(s).
 type Receiver struct {
-	Save   string                            `yaml:"save_to"`
+	Save   *string                           `yaml:"save_to"`
 	Client map[string]map[string]interface{} `yaml:"client"`
 }
 
@@ -99,7 +101,37 @@ type Tracker struct {
 func Parse(r io.Reader) (config *C, e error) {
 	config = new(C)
 	e = yaml.NewDecoder(r).Decode(config)
+	if e != nil {
+		return
+	}
+	config.standardize()
 	return
+}
+
+func (c *C) standardize() {
+	if c.Global.Timeout.T == 0 {
+		c.Global.Timeout.T = 30 * time.Second
+	}
+	if c.Global.History.MaxAge.T == 0 {
+		c.Global.History.MaxAge.T = 30 * 24 * time.Hour
+	}
+	for _, v := range c.Tasks {
+		if v.Rss.Method == "" {
+			v.Rss.Method = "GET"
+		}
+		if v.Rss.Interval.T == 0 {
+			v.Rss.Interval.T = 30 * time.Second
+		}
+		if v.Filter.ContentSize.Max == 0 {
+			v.Filter.ContentSize.Max = 1 << 62
+		}
+		if v.Quota.Num == 0 {
+			v.Quota.Num = 1 << 31
+		}
+		if v.Quota.Size == 0 {
+			v.Quota.Size = 1 << 62
+		}
+	}
 }
 
 // UnmarshalYAML :)
