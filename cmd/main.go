@@ -2,27 +2,25 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
+
+	trss "github.com/capric98/t-rss"
 )
 
 var (
 	config = flag.String("conf", "config.yml", "config file")
+	learn  = flag.Bool("learn", false, "learn")
+
+	userConfigDir, _ = os.UserConfigDir()
 )
 
 func init() {
 	flag.Parse()
+	if _, e := os.Stat(*config); os.IsNotExist(e) {
+		*config = userConfigDir + "/t-rss/config.yml"
+	}
 }
 
 func main() {
-	hd, e := os.UserHomeDir()
-	if e != nil {
-		fmt.Println(e)
-	}
-	fmt.Println(hd)
-	if _, e := os.Stat(hd + "/audio.m4a"); !os.IsNotExist(e) {
-		fmt.Println("file exists!")
-	} else {
-		fmt.Println(e)
-	}
+	trss.WithConfigFile(*config, *learn)
 }

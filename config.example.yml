@@ -13,8 +13,8 @@ TASKS:
       url: http(s)://example.com
       method: GET #*GET/POST
       headers:    #*if needed
-        - Cookie: something
-        - Key: Value
+        Cookie: something
+        Key: Value
       interval: 10s # {int}s/m/h/d
     filter:
       content_size:
@@ -35,7 +35,7 @@ TASKS:
         add:
           - http(s)://example.com/
     receiver:
-      save_path: /home/WatchDir/
+      save_to: /home/WatchDir/
       client:
         Name_of_client0:
           type: qBittorrent
