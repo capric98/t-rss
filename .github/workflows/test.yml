@@ -1,4 +1,4 @@
-name: Go
+name: Code Test
 
 on:
   push:
@@ -7,13 +7,13 @@ on:
 jobs:
 
   build:
-    name: Build
+    name: Code Test
     runs-on: ubuntu-latest
     steps:
 
     - name: Set up Go LATEST
       run: |
-        curl -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
+        curl -quiet -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
         source ~/.bashrc
 
     - name: Check out code into the Go module directory
