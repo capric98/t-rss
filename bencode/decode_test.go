@@ -1,11 +1,8 @@
 package bencode
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"testing"
-	"time"
 )
 
 func printSpace(n int) {
@@ -50,29 +47,29 @@ func (b *Body) idle() {
 }
 
 func TestDecodeByteSlice(t *testing.T) {
-	startT := time.Now()
-	f, _ := ioutil.ReadFile("vcb.torrent")
-	result, err := Decode(f)
-	if err != nil {
-		fmt.Println(err)
-		t.Fail()
-	}
-	fmt.Printf("%s\n", time.Since(startT))
-	result[0].print(0)
+	// startT := time.Now()
+	// f, _ := ioutil.ReadFile("vcb.torrent")
+	// result, err := Decode(f)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	t.Fail()
+	// }
+	// fmt.Printf("%s\n", time.Since(startT))
+	// result[0].print(0)
 
-	info := result[0].Dict("info")
-	pl := (info.Dict("piece length")).Value()
-	ps := int64(len((info.Dict("pieces")).BStr())) / 20
-	//ps := int64(1)
-	fmt.Println(float64(pl*ps) / 1024 / 1024 / 1024)
-	fmt.Println("Checked:", result[0].Check())
+	// info := result[0].Dict("info")
+	// pl := (info.Dict("piece length")).Value()
+	// ps := int64(len((info.Dict("pieces")).BStr())) / 20
+	// //ps := int64(1)
+	// fmt.Println(float64(pl*ps) / 1024 / 1024 / 1024)
+	// fmt.Println("Checked:", result[0].Check())
 
-	hash, err := result[0].Infohash()
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(hex.EncodeToString(hash))
-	}
+	// hash, err := result[0].Infohash()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	fmt.Println(hex.EncodeToString(hash))
+	// }
 
 	//enc, _ := result[0].Encode()
 	//_ = ioutil.WriteFile("out", enc, 0644)
@@ -80,14 +77,14 @@ func TestDecodeByteSlice(t *testing.T) {
 }
 
 func BenchmarkDecode(b *testing.B) {
-	f, _ := ioutil.ReadFile("TLMC.torrent")
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		result, err := Decode(f)
-		if err != nil {
-			fmt.Println(err)
-			b.Fail()
-		}
-		result[0].idle()
-	}
+	// f, _ := ioutil.ReadFile("TLMC.torrent")
+	// b.ReportAllocs()
+	// for i := 0; i < b.N; i++ {
+	// 	result, err := Decode(f)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		b.Fail()
+	// 	}
+	// 	result[0].idle()
+	// }
 }
