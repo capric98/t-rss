@@ -1,0 +1,43 @@
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    name: Attach Builds to Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go LATEST
+        run: |
+          curl -quiet -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
+          source ~/.bashrc
+          apt install zip
+
+      - name: Build
+        env:
+          CGO_ENABLED: 0
+        run: |
+          export GOOS=linux
+          export GOARCH=arm
+          go build -o t-rss cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
+          export GOOS=linux
+          export GOARCH=arm64
+          go build -o t-rss cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
+          export GOOS=linux
+          export GOARCH=amd64
+          go build -o t-rss cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
+          export GOOS=windows
+          export GOARCH=amd64
+          go build -o t-rss.exe cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss.exe && rm -rf t-rss.exe
+
+      - uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: t-rss*.zip
