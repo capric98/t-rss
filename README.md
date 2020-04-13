@@ -85,6 +85,10 @@ TASKS:
 ### 运行
 在RSS目录下运行二进制文件即可，默认使用同目录下的config.yml作为配置文件，历史保留在同目录下的`.t-rss_History`目录内；也可以nohup或者注册成服务什么的。。
 
+### TODO
+  * 重写client部分
+  * 增加test覆盖率
+
 [go-yaml](https://github.com/go-yaml/yaml)
 
 [go-rencode](https://github.com/gdm85/go-rencode)
