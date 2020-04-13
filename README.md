@@ -9,7 +9,7 @@ t-rss是一个自动rss bt种子文件的程序，相比flexget丰富的功能�
 写好配置文件直接运行就完了，命令行参数见`-help`，此处略
 
 ## 配置
-带*的部分是可省略不配置的，但是`download_to`和`client`至少配置一个不然程序跑完rss啥也不会干
+带*的部分是可省略不配置的，但`receiver`部分需要至少配置一个不然程序跑完rss啥也不会干
 
 <details>
 <summary>config.yml(格式修改中)</summary>
