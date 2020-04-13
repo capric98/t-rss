@@ -115,6 +115,12 @@ func (c *C) standardize() {
 	if c.Global.History.MaxAge.T == 0 {
 		c.Global.History.MaxAge.T = 30 * 24 * time.Hour
 	}
+	if c.Global.History.Save == "" {
+		c.Global.History.Save = ".t-rss_History/"
+	}
+	if l := len(c.Global.History.Save); l > 0 && c.Global.History.Save[l-1] != '/' {
+		c.Global.History.Save = c.Global.History.Save + "/"
+	}
 	for _, v := range c.Tasks {
 		if v.Rss.Method == "" {
 			v.Rss.Method = "GET"

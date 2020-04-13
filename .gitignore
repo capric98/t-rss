@@ -15,3 +15,4 @@
 !config.example.yml
 *.conf
 
+.t-rss_History/*

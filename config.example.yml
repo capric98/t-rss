@@ -1,10 +1,10 @@
 GLOBAL:
   log:
-    level: debug # no/warn/info/debug
-    save_to: #~/home/.t-rss/log/warn.log
+    level: debug # warn/info/debug/trace
+    save_to: # ~/home/.t-rss/log/warn.log
   history:
-    max_age: 30d # {int}s/m/h/d
-    save_to: ~/home/.t-rss/history/
+    max_age: 30s # {int}s/m/h/d
+    save_to: # ~/home/.t-rss/history/
   timeout: 1m
 
 TASKS:
