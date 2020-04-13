@@ -1,18 +1,20 @@
-package myfeed
+package feed
 
 import (
+	"bytes"
 	"encoding/xml"
-	"html"
-	"io"
 
+	"github.com/capric98/t-rss/unit"
 	"golang.org/x/net/html/charset"
 )
 
+// RSSFeed :)
 type RSSFeed struct {
 	Version string    `xml:"version,attr"`
 	Channel []Channel `xml:"channel"`
 }
 
+// Channel :)
 type Channel struct {
 	// Required
 	Title       string `xml:"title"`
@@ -36,10 +38,11 @@ type Channel struct {
 	//skipHours
 	//skipDays
 
-	Items []rItem `xml:"item"`
+	Items []RSSItem `xml:"item"`
 }
 
-type rItem struct {
+// RSSItem :)
+type RSSItem struct {
 	Title       string `xml:"title"`
 	Link        string `xml:"link"`
 	Description string `xml:"description"`
@@ -50,7 +53,7 @@ type rItem struct {
 	} `xml:"category"`
 	Comments  string `xml:"comments"`
 	Enclosure struct {
-		Url  string `xml:"url,attr"`
+		URL  string `xml:"url,attr"`
 		Len  int64  `xml:"length,attr"`
 		Type string `xml:"type,attr"`
 	} `xml:"enclosure"`
@@ -62,36 +65,34 @@ type rItem struct {
 	Source   string `xml:"source"`
 }
 
-func rParse(r io.Reader) (f []Item, e error) {
+func parseRSS(body []byte) (f []Item, e error) {
 	var feed RSSFeed
 
-	decoder := xml.NewDecoder(r)
+	decoder := xml.NewDecoder(bytes.NewReader(body))
 	decoder.CharsetReader = charset.NewReaderLabel
 	e = decoder.Decode(&feed)
-	if e == nil && len(feed.Channel) == 0 {
-		e = ErrNotRSSFormat
+
+	if e != nil {
+		return
 	}
 
-	items := make([]Item, 0)
-	if e == nil {
-		for _, c := range feed.Channel {
-			for _, v := range c.Items {
-				i := Item{
-					rItem:   v,
-					PubDate: strToTime(v.SpubDate),
-				}
-				i.Link = html.UnescapeString(i.Link)
-				i.Enclosure.Url = html.UnescapeString(i.Enclosure.Url)
-				i.Description = html.UnescapeString(i.Description)
-				i.Comments = html.UnescapeString(i.Comments)
-				items = append(items, i)
+	for _, c := range feed.Channel {
+		for _, v := range c.Items {
+			i := Item{
+				Title:       v.Title,
+				Link:        v.Link,
+				Description: v.Description,
+				Author:      v.Author,
+				URL:         v.Enclosure.URL,
+				Len:         v.Enclosure.Len,
+				Type:        v.Enclosure.Type,
+				GUID:        v.GUID.Value,
+				Date:        unit.ParseTime(v.SpubDate),
+				Source:      v.Source,
 			}
+			f = append(f, i)
 		}
-		f = items
 	}
-
-	// https://stackoverflow.com/questions/21469163/golang-reading-xml-memory-leak
-	feed = RSSFeed{}
 
 	return
 }

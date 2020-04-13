@@ -1,0 +1,63 @@
+GLOBAL:
+  log_file: # empty -> stderr
+  history:
+    max_age: 30s # {int}s/m/h/d
+    save_to: # ~/home/.t-rss/history/
+  timeout: 1m
+
+TASKS:
+  Name_of_task0:
+    rss:
+      url: http(s)://example.com
+      method: GET #*GET/POST
+      headers:    #*if needed
+        Cookie: something
+        Key: Value
+      interval: 10s # {int}s/m/h/d
+    filter:
+      content_size:
+        min:
+        max:
+      regexp:
+        accept:
+          - A
+        reject:
+          - B
+    quota:
+      num: 65535
+      size:
+    edit:
+      tracker:
+        delete:
+          - share
+        add:
+          - http(s)://example.com/
+    receiver:
+      save_to: /home/WatchDir/
+      client:
+        Name_of_client0:
+          type: qBittorrent
+          url: http(s)://example.com
+          username: admin
+          password: adminadmin
+          dlLimit:
+          upLimit:
+          pause: true
+          savepath: /home/Downloads
+        Name_of_client1:
+          type: Deluge
+          host: 127.0.0.1:1234
+          username:
+          password:
+
+  Name_of_task1:
+    rss:
+      url: http(s)://example.com
+      receiver:
+        save_path: /home/WatchDir/
+  Name_of_task2:
+    rss:
+      url: http(s)://example.com
+      receiver:
+        save_path: /home/WatchDir/
+    

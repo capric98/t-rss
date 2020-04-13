@@ -5,12 +5,13 @@ import (
 	"unicode"
 )
 
+// Client :)
 type Client interface {
 	Add(b []byte, name string) error
 	Name() string
-	Label() string
 }
 
+// UConvert :)
 func UConvert(s string) string {
 	if s == "" {
 		return ""

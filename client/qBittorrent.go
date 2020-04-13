@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// QBType :)
 type QBType struct {
 	client   *http.Client
 	settings map[string]string
@@ -28,13 +29,7 @@ var (
 	privateIPBlocks []*net.IPNet
 )
 
-func (c *QBType) Name() string {
-	return c.name
-}
-func (c *QBType) Label() string {
-	return c.label
-}
-
+// NewqBclient :)
 func NewqBclient(key string, m map[string]interface{}) *QBType {
 	nc := &QBType{
 		client:   nil,
@@ -59,8 +54,8 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 		}
 	} // Copy settings.
 
-	if length := len(nc.settings["host"]); nc.settings["host"][length-1] == '/' {
-		nc.settings["host"] = nc.settings["host"][:length-1]
+	if length := len(nc.settings["url"]); nc.settings["url"][length-1] == '/' {
+		nc.settings["url"] = nc.settings["url"][:length-1]
 	}
 	nc.settings["dlLimit"] = UConvert(nc.settings["dlLimit"])
 	nc.settings["upLimit"] = UConvert(nc.settings["upLimit"])
@@ -88,13 +83,13 @@ func (c *QBType) init() error {
 		Jar:     cookieJar,
 	}
 
-	if c.settings["password"] == "" && isPrivateURL(c.settings["host"]) {
+	if c.settings["password"] == "" && isPrivateURL(c.settings["url"]) {
 		log.Println(c.label + " qBittorrent client: You do not set username or password.")
 		log.Println("Please make sure the client is running on local network, and make sure you have enabled no authentication for local user.")
 		return nil
 	}
 
-	resp, err := c.client.PostForm(c.settings["host"]+"/api/v2/auth/login", url.Values{
+	resp, err := c.client.PostForm(c.settings["url"]+"/api/v2/auth/login", url.Values{
 		"username": {c.settings["username"]},
 		"password": {c.settings["password"]},
 	})
@@ -106,6 +101,12 @@ func (c *QBType) init() error {
 	return nil
 }
 
+// Name :)
+func (c *QBType) Name() string {
+	return c.label
+}
+
+// Add :)
 func (c *QBType) Add(data []byte, filename string) (e error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -115,15 +116,15 @@ func (c *QBType) Add(data []byte, filename string) (e error) {
 
 	var try int
 	for {
-		if e = c.call(data, filename); e == nil {
+		e = c.call(data, filename)
+		if e == nil {
 			return
-		} else {
-			try++
-			if try == 3 {
-				return
-			}
-			_ = c.init()
 		}
+		try++
+		if try == 3 {
+			return
+		}
+		_ = c.init()
 	}
 }
 
@@ -135,7 +136,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	for _, v := range qBparalist {
 		if c.settings[v] != "" {
 			if w.WriteField(v, c.settings[v]) != nil {
-				return fmt.Errorf("Failed to write field %s!", v)
+				return fmt.Errorf("Failed to write field %s", v)
 			}
 		}
 	}
@@ -149,7 +150,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	}
 	w.Close()
 
-	req, err := http.NewRequest("POST", c.settings["host"]+"/api/v2/torrents/add", &b)
+	req, err := http.NewRequest("POST", c.settings["url"]+"/api/v2/torrents/add", &b)
 	if err != nil {
 		return err
 	}
