@@ -67,7 +67,9 @@ func WithConfigFile(filename string, level string, learn bool) {
 	var wg sync.WaitGroup
 	for k, v := range config.Tasks {
 		wg.Add(1)
-		doTask(bgCtx, v, client, backgroundLogger.WithField("task", k), &wg)
+		doTask(bgCtx, v, client, func() *logrus.Entry {
+			return backgroundLogger.WithField("task", k)
+		}, &wg)
 	}
 
 	c := make(chan os.Signal, 10)

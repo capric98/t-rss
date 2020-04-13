@@ -29,6 +29,11 @@ func (r *dReceiver) Push(b []byte, i interface{}) (e error) {
 	return
 }
 
+// Name implements Receiver interface.
+func (r *dReceiver) Name() string {
+	return "download"
+}
+
 func regularizeFilename(name string) string {
 	name = strings.ReplaceAll(name, ":", "_")
 	name = strings.ReplaceAll(name, "\\", "_")

@@ -2,6 +2,7 @@ package feed
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"
@@ -49,7 +50,30 @@ func Parse(body []byte) (i []Item, e error) {
 		i[k].Type = html.UnescapeString(i[k].Type)
 		i[k].GUID = html.UnescapeString(i[k].GUID)
 		i[k].Source = html.UnescapeString(i[k].Source)
+
+		if i[k].GUID == "" {
+			i[k].GUID = regularizeFilename(i[k].Title)
+		}
 	}
 
 	return
+}
+
+func regularizeFilename(name string) string {
+	name = strings.ReplaceAll(name, ":", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "*", "_")
+	name = strings.ReplaceAll(name, "?", "_")
+	name = strings.ReplaceAll(name, "\"", "_")
+	name = strings.ReplaceAll(name, "<", "_")
+	name = strings.ReplaceAll(name, ">", "_")
+	name = strings.ReplaceAll(name, "|", "_")
+	name = strings.ReplaceAll(name, "\n", "_")
+	name = strings.ReplaceAll(name, "\r", "_")
+	name = strings.ReplaceAll(name, " ", "_")
+	if len(name) > 255 {
+		name = name[:255]
+	}
+	return name
 }
