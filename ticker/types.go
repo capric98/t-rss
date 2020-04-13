@@ -1,4 +1,6 @@
 package ticker
 
-// Ticker interface
-type Ticker interface{}
+// Ticker struct
+type Ticker struct {
+	c chan string
+}

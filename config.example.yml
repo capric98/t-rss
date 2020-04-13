@@ -1,7 +1,5 @@
 GLOBAL:
-  log:
-    level: debug # warn/info/debug/trace
-    save_to: # ~/home/.t-rss/log/warn.log
+  log_file: # empty -> stderr
   history:
     max_age: 30s # {int}s/m/h/d
     save_to: # ~/home/.t-rss/history/

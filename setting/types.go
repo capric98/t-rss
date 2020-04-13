@@ -22,10 +22,7 @@ type C struct {
 
 // Global is global configs.
 type Global struct {
-	LogConfig struct {
-		Level string `yaml:"level"`
-		Save  string `yaml:"save_to"`
-	} `yaml:"log"`
+	LogFile string `yaml:"log_file"`
 	History struct {
 		MaxAge Duration `yaml:"max_age"`
 		Save   string   `yaml:"save_to"`

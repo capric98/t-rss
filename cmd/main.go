@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	config = flag.String("conf", "config.yml", "config file")
-	learn  = flag.Bool("learn", false, "learn")
+	config   = flag.String("conf", "config.yml", "config file")
+	loglevel = flag.String("log", "info", "log level: warn/info/debug/trace")
+	learn    = flag.Bool("learn", false, "learn")
 
 	userConfigDir, _ = os.UserConfigDir()
 )
@@ -22,5 +23,5 @@ func init() {
 }
 
 func main() {
-	trss.WithConfigFile(*config, *learn)
+	trss.WithConfigFile(*config, *loglevel, *learn)
 }

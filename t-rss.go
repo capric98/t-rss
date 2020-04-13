@@ -1,6 +1,8 @@
 package trss
 
 import (
+	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +13,7 @@ import (
 )
 
 // WithConfigFile starts program using a config file.
-func WithConfigFile(filename string, learn bool) {
+func WithConfigFile(filename string, level string, learn bool) {
 	backgroundLogger := logrus.New()
 	formatter := &logrus.TextFormatter{
 		ForceColors:      false,
@@ -27,22 +29,23 @@ func WithConfigFile(filename string, learn bool) {
 		},
 	}
 	backgroundLogger.SetFormatter(formatter)
+	backgroundLogger.SetLevel(toLogLevel(level))
 
 	fr, e := os.Open(filename)
 	if e != nil {
-		backgroundLogger.Fatal("open config file:", e)
+		backgroundLogger.Fatal("open config file: ", e)
 	}
 	config, e := setting.Parse(fr)
 	fr.Close()
 	if e != nil {
-		backgroundLogger.Fatal("parse config file:", e)
+		backgroundLogger.Fatal("parse config file: ", e)
 	}
-	if config.Global.LogConfig.Save == "" {
+	if config.Global.LogFile == "" {
 		formatter.ForceColors = true
 		backgroundLogger.SetOutput(colorable.NewColorableStderr())
 	} else {
 		fw, fe := os.OpenFile(
-			config.Global.LogConfig.Save,
+			config.Global.LogFile,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
 			0640,
 		)
@@ -51,7 +54,6 @@ func WithConfigFile(filename string, learn bool) {
 		}
 		backgroundLogger.SetOutput(fw)
 	}
-	backgroundLogger.SetLevel(toLogLevel(config.Global.LogConfig.Level))
 
 	checkAndWatchHistory(
 		config.Global.History.Save,
@@ -59,8 +61,15 @@ func WithConfigFile(filename string, learn bool) {
 		backgroundLogger,
 	)
 
+	client := &http.Client{Timeout: config.Global.Timeout.T}
+	bgCtx, cancel := context.WithCancel(context.Background())
+	for k, v := range config.Tasks {
+		doTask(bgCtx, v, client, backgroundLogger.WithField("task", k))
+	}
+
 	c := make(chan os.Signal, 10)
 	signal.Notify(c, os.Interrupt, syscall.SIGQUIT, syscall.SIGTERM)
 	backgroundLogger.Info("receive signal: ", <-c)
+	cancel()
 	_ = backgroundLogger.Writer().Close()
 }
