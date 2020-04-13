@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/capric98/t-rss/setting"
@@ -63,13 +64,27 @@ func WithConfigFile(filename string, level string, learn bool) {
 
 	client := &http.Client{Timeout: config.Global.Timeout.T}
 	bgCtx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
 	for k, v := range config.Tasks {
-		doTask(bgCtx, v, client, backgroundLogger.WithField("task", k))
+		wg.Add(1)
+		doTask(bgCtx, v, client, backgroundLogger.WithField("task", k), &wg)
 	}
 
 	c := make(chan os.Signal, 10)
 	signal.Notify(c, os.Interrupt, syscall.SIGQUIT, syscall.SIGTERM)
-	backgroundLogger.Info("receive signal: ", <-c)
+	wgDone := make(chan struct{}, 1)
+	go func() {
+		wg.Wait()
+		wgDone <- struct{}{}
+	}()
+
+	select {
+	case sig := <-c:
+		backgroundLogger.Info("receive signal: ", sig)
+	case <-wgDone:
+		backgroundLogger.Info("all tasks done")
+	}
+
 	cancel()
 	_ = backgroundLogger.Writer().Close()
 }

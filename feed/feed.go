@@ -2,8 +2,6 @@ package feed
 
 import (
 	"errors"
-	"io"
-	"io/ioutil"
 	"time"
 
 	"golang.org/x/net/html"
@@ -29,11 +27,7 @@ type Item struct {
 }
 
 // Parse :)
-func Parse(r io.Reader) (i []Item, e error) {
-	body, e := ioutil.ReadAll(r)
-	if e != nil {
-		return
-	}
+func Parse(body []byte) (i []Item, e error) {
 	var estr string
 	i, e = parseRSS(body)
 	if e != nil {
