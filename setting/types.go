@@ -129,7 +129,7 @@ func (c *C) standardize() {
 			v.Filter.ContentSize.Max = 1 << 62
 		}
 		if v.Quota.Num == 0 {
-			v.Quota.Num = 1 << 31
+			v.Quota.Num = 1 << 30
 		}
 		if v.Quota.Size == 0 {
 			v.Quota.Size = 1 << 62
