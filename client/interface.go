@@ -6,13 +6,9 @@ import (
 )
 
 // Client :)
-type Client struct {
-	Type, Label string
-	client      client
-}
-
-type client interface {
+type Client interface {
 	Add(b []byte, name string) error
+	Name() string
 }
 
 // UConvert :)

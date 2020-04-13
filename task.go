@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/capric98/t-rss/bencode"
 	"github.com/capric98/t-rss/feed"
@@ -54,15 +55,21 @@ func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nl
 	}
 	w.Client = client
 
-	req, _ := http.NewRequest(t.Rss.Method, t.Rss.URL, nil)
-	for k, v := range t.Rss.Headers {
-		req.Header.Add(k, v)
-	}
+	if t.Rss != nil {
+		req, _ := http.NewRequest(t.Rss.Method, t.Rss.URL, nil)
+		for k, v := range t.Rss.Headers {
+			req.Header.Add(k, v)
+		}
 
-	w.Ticker = ticker.NewRssTicker(n, req, client, nlfunc(), t.Rss.Interval.T)
+		w.Ticker = ticker.NewRssTicker(n, req, client, nlfunc(), t.Rss.Interval.T)
+	}
 	// make receiver
 	if t.Receiver.Save != nil {
 		w.receiver = append(w.receiver, receiver.NewDownload(*t.Receiver.Save))
+	}
+	for k, v := range t.Receiver.Client {
+		// nlfunc().Infof("%#v", v)
+		w.receiver = append(w.receiver, receiver.NewClient(v["type"], v, k))
 	}
 
 	// nlfunc().Debugf("%#v\n", w)
@@ -147,7 +154,7 @@ func (w *worker) push(it []feed.Item) {
 	for _, v := range it {
 		go func(item feed.Item) {
 			log := w.logger().WithFields(logrus.Fields{
-				"url": item.URL,
+				"title": item.Title,
 			})
 			req, _ := http.NewRequest("GET", item.URL, nil)
 			for hk, hv := range w.header {
@@ -181,9 +188,12 @@ func (w *worker) push(it []feed.Item) {
 
 			for k := range w.receiver {
 				go func(i int) {
+					start := time.Now()
 					err := w.receiver[i].Push(body, item.Title)
 					if err != nil {
-						log.Warn("push to receiver ", w.receiver[i].Name(), " : ", err)
+						log.Warn("push to ", w.receiver[i].Name(), " : ", err)
+					} else {
+						log.WithField("@cost", time.Since(start)).Info("push to ", w.receiver[i].Name())
 					}
 				}(k)
 			}

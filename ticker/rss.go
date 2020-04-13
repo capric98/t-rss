@@ -20,7 +20,8 @@ func NewRssTicker(n int, req *http.Request, client *http.Client, log *logrus.Ent
 func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Item, log *logrus.Entry, interval time.Duration) {
 	log = log.WithField("@func", "rssTicker")
 
-	for times := byte(0); int(times) != n; times++ {
+	times := byte(0)
+	for {
 		resp, e := client.Do(req)
 		if e != nil {
 			log.Warn(e)
@@ -36,7 +37,10 @@ func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Ite
 		}
 		ch <- items
 
+		if times++; int(times) == n {
+			close(ch)
+			return
+		}
 		time.Sleep(interval)
 	}
-	close(ch)
 }

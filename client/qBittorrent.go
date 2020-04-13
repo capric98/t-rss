@@ -54,8 +54,8 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 		}
 	} // Copy settings.
 
-	if length := len(nc.settings["host"]); nc.settings["host"][length-1] == '/' {
-		nc.settings["host"] = nc.settings["host"][:length-1]
+	if length := len(nc.settings["url"]); nc.settings["url"][length-1] == '/' {
+		nc.settings["url"] = nc.settings["url"][:length-1]
 	}
 	nc.settings["dlLimit"] = UConvert(nc.settings["dlLimit"])
 	nc.settings["upLimit"] = UConvert(nc.settings["upLimit"])
@@ -83,13 +83,13 @@ func (c *QBType) init() error {
 		Jar:     cookieJar,
 	}
 
-	if c.settings["password"] == "" && isPrivateURL(c.settings["host"]) {
+	if c.settings["password"] == "" && isPrivateURL(c.settings["url"]) {
 		log.Println(c.label + " qBittorrent client: You do not set username or password.")
 		log.Println("Please make sure the client is running on local network, and make sure you have enabled no authentication for local user.")
 		return nil
 	}
 
-	resp, err := c.client.PostForm(c.settings["host"]+"/api/v2/auth/login", url.Values{
+	resp, err := c.client.PostForm(c.settings["url"]+"/api/v2/auth/login", url.Values{
 		"username": {c.settings["username"]},
 		"password": {c.settings["password"]},
 	})
@@ -99,6 +99,11 @@ func (c *QBType) init() error {
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// Name :)
+func (c *QBType) Name() string {
+	return c.label
 }
 
 // Add :)
@@ -145,7 +150,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	}
 	w.Close()
 
-	req, err := http.NewRequest("POST", c.settings["host"]+"/api/v2/torrents/add", &b)
+	req, err := http.NewRequest("POST", c.settings["url"]+"/api/v2/torrents/add", &b)
 	if err != nil {
 		return err
 	}

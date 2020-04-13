@@ -14,5 +14,6 @@ func (t *Ticker) C() <-chan []feed.Item {
 
 // Stop :)
 func (t *Ticker) Stop() {
+	defer func() { _ = recover() }()
 	close(t.c)
 }

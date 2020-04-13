@@ -72,6 +72,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 		wg.Add(1)
 		n := -1
 		if learn {
+			backgroundLogger.Info("Learning...")
 			n = 1
 		}
 		doTask(bgCtx, n, v, client, func() *logrus.Entry {

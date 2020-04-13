@@ -103,6 +103,11 @@ func (c *DeType) Add(data []byte, name string) (e error) {
 	return ErrAddFail
 }
 
+// Name :)
+func (c *DeType) Name() string {
+	return c.label
+}
+
 // NewDeClient :)
 func NewDeClient(key string, m map[string]interface{}) *DeType {
 	defer func() {
