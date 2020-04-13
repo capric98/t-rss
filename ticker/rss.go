@@ -3,6 +3,7 @@ package ticker
 import (
 	"io/ioutil"
 	"net/http"
+	"time"
 	"unsafe"
 
 	"github.com/capric98/t-rss/feed"
@@ -10,15 +11,16 @@ import (
 )
 
 // NewRssTicker :)
-func NewRssTicker(req *http.Request, client *http.Client, log *logrus.Entry) *Ticker {
+func NewRssTicker(n int, req *http.Request, client *http.Client, log *logrus.Entry, interval time.Duration) *Ticker {
 	ch := make(chan []feed.Item, 10)
-	go rssTicker(req, client, ch, log)
+	go rssTicker(n, req, client, ch, log, interval)
 	return &Ticker{c: ch}
 }
 
-func rssTicker(req *http.Request, client *http.Client, ch chan []feed.Item, log *logrus.Entry) {
+func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Item, log *logrus.Entry, interval time.Duration) {
 	log = log.WithField("@func", "rssTicker")
-	for {
+
+	for times := byte(0); int(times) != n; times++ {
 		resp, e := client.Do(req)
 		if e != nil {
 			log.Warn(e)
@@ -27,5 +29,14 @@ func rssTicker(req *http.Request, client *http.Client, ch chan []feed.Item, log 
 		body, e := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		log.Trace("\n", *(*string)(unsafe.Pointer(&body)))
+
+		items, e := feed.Parse(body)
+		if e != nil {
+			log.Warn("parse: ", e)
+		}
+		ch <- items
+
+		time.Sleep(interval)
 	}
+	close(ch)
 }

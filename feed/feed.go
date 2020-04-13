@@ -52,8 +52,9 @@ func Parse(body []byte) (i []Item, e error) {
 		i[k].Source = html.UnescapeString(i[k].Source)
 
 		if i[k].GUID == "" {
-			i[k].GUID = regularizeFilename(i[k].Title)
+			i[k].GUID = i[k].Title
 		}
+		i[k].GUID = regularizeFilename(i[k].GUID)
 	}
 
 	return

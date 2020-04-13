@@ -56,6 +56,9 @@ func WithConfigFile(filename string, level string, learn bool) {
 		backgroundLogger.SetOutput(fw)
 	}
 
+	if config.Global.History.Save[len(config.Global.History.Save)-1] != '/' {
+		config.Global.History.Save = config.Global.History.Save + "/"
+	}
 	checkAndWatchHistory(
 		config.Global.History.Save,
 		config.Global.History.MaxAge.T,
@@ -67,9 +70,13 @@ func WithConfigFile(filename string, level string, learn bool) {
 	var wg sync.WaitGroup
 	for k, v := range config.Tasks {
 		wg.Add(1)
-		doTask(bgCtx, v, client, func() *logrus.Entry {
+		n := -1
+		if learn {
+			n = 1
+		}
+		doTask(bgCtx, n, v, client, func() *logrus.Entry {
 			return backgroundLogger.WithField("task", k)
-		}, &wg)
+		}, &wg, config.Global.History.Save+k+"/")
 	}
 
 	c := make(chan os.Signal, 10)

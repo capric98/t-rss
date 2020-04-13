@@ -16,7 +16,7 @@ var (
 
 	toD = regexp.MustCompile(`[0-9]+`)
 
-	u = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "???"}
+	u = []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "NF"}
 )
 
 // ParseSize parses a string to int64 size.
@@ -38,8 +38,9 @@ func FormatSize(n int64) string {
 		count++
 		f64n /= 1024.0
 	}
-	if count > 6 {
+	if count >= 6 {
 		count = 6
+		f64n = 0.1
 	}
 	return fmt.Sprintf("%.1f%s", f64n, u[count])
 }

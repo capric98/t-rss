@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/capric98/t-rss/bencode"
 	"github.com/capric98/t-rss/feed"
 	"github.com/capric98/t-rss/receiver"
 	"github.com/capric98/t-rss/setting"
@@ -22,6 +23,7 @@ type worker struct {
 	accept, reject []setting.Reg
 	min, max       int64
 	quota          setting.Quota
+	edit           *setting.Edit
 	receiver       []receiver.Receiver
 
 	header      map[string]string
@@ -30,7 +32,41 @@ type worker struct {
 	historyPath string
 }
 
-func doTask(ctx context.Context, t setting.Task, client *http.Client, nlfunc func() *logrus.Entry, wg *sync.WaitGroup) {
+func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nlfunc func() *logrus.Entry, wg *sync.WaitGroup, history string) {
+	if _, e := os.Stat(history); os.IsNotExist(e) {
+		e = os.MkdirAll(history, 0640)
+		if e != nil {
+			nlfunc().Fatal("cannot mkdir: ", e)
+		}
+	}
+	// nlfunc().Debugf("%#v\n", t)
+	w := &worker{
+		accept:      t.Filter.Regexp.Accept,
+		reject:      t.Filter.Regexp.Reject,
+		min:         t.Filter.ContentSize.Min,
+		max:         t.Filter.ContentSize.Max,
+		quota:       t.Quota,
+		edit:        t.Edit,
+		header:      t.Rss.Headers,
+		ctx:         ctx,
+		logger:      nlfunc,
+		historyPath: history,
+	}
+	w.Client = client
+
+	req, _ := http.NewRequest(t.Rss.Method, t.Rss.URL, nil)
+	for k, v := range t.Rss.Headers {
+		req.Header.Add(k, v)
+	}
+
+	w.Ticker = ticker.NewRssTicker(n, req, client, nlfunc(), t.Rss.Interval.T)
+	// make receiver
+	if t.Receiver.Save != nil {
+		w.receiver = append(w.receiver, receiver.NewDownload(*t.Receiver.Save))
+	}
+
+	// nlfunc().Debugf("%#v\n", w)
+	go w.do(wg)
 }
 
 func (w *worker) do(wg *sync.WaitGroup) {
@@ -63,6 +99,13 @@ func (w *worker) do(wg *sync.WaitGroup) {
 					log.Debug(`reject "`, v.Title, `" - have seen before.`)
 					reject++
 					continue
+				} else {
+					hf, err := os.Create(w.historyPath + v.GUID)
+					if err != nil {
+						log.Warn("create history file: ", err)
+					} else {
+						hf.Close()
+					}
 				}
 				// Check regexp filter.
 				if match, ms := checkRegexp(v, w.reject); match {
@@ -126,7 +169,14 @@ func (w *worker) push(it []feed.Item) {
 			}
 
 			if item.Len == 0 {
-				// recheck
+				if pass, len := w.checkTLength(body); !pass {
+					log.Warn("reject in double check: ", len, " is not in [", w.min, ",", w.max, "]")
+					return
+				}
+			}
+			if w.edit != nil {
+				log.Debug("edit torrent...")
+				body = w.editTorrent(body)
 			}
 
 			for k := range w.receiver {
@@ -151,4 +201,22 @@ func checkRegexp(v feed.Item, reg []setting.Reg) (bool, string) {
 		}
 	}
 	return false, ""
+}
+
+func (w *worker) checkTLength(data []byte) (bool, int64) {
+	defer func() { _ = recover() }()
+
+	result, err := bencode.Decode(data)
+	if err != nil {
+		return false, -1
+	}
+	info := result[0].Dict("info")
+	pl := (info.Dict("piece length")).Value()
+	ps := int64(len((info.Dict("pieces")).BStr())) / 20
+	length := pl * ps
+
+	if w.min <= length && length <= w.max {
+		return true, length
+	}
+	return false, length
 }

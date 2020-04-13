@@ -16,8 +16,8 @@ type Duration struct {
 
 // C :)
 type C struct {
-	Global Global          `yaml:"GLOBAL"`
-	Tasks  map[string]Task `yaml:"TASKS"`
+	Global Global           `yaml:"GLOBAL"`
+	Tasks  map[string]*Task `yaml:"TASKS"`
 }
 
 // Global is global configs.

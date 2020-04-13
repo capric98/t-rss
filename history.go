@@ -35,12 +35,12 @@ func watchHistroy(path string, maxAge time.Duration, log *logrus.Entry) {
 				mod := time.Since(info.ModTime())
 				log.WithFields(logrus.Fields{
 					"filename": info.Name(),
-				}).Debug(
+				}).Trace(
 					"moded ", mod, " ago",
 				)
 
 				if mod > maxAge {
-					log.WithField("filename", info.Name()).Info("delete old history file")
+					log.WithField("filename", info.Name()).Debug("delete old history file")
 					err = os.Remove(v)
 					if err != nil {
 						log.Warn("delete: ", err)
