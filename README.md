@@ -88,6 +88,7 @@ TASKS:
 
 ### TODO
   * 重写client部分
+  * 重写/重新设计bencode部分
   * 增加test覆盖率
 
 [go-yaml](https://github.com/go-yaml/yaml)

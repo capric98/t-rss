@@ -70,12 +70,14 @@ func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nl
 		w.Ticker = ticker.NewRssTicker(n, req, client, nlfunc(), t.Rss.Interval.T)
 	}
 	// make receiver
-	if t.Receiver.Save != nil {
-		w.receiver = append(w.receiver, receiver.NewDownload(*t.Receiver.Save))
-	}
-	for k, v := range t.Receiver.Client {
-		// nlfunc().Infof("%#v", v)
-		w.receiver = append(w.receiver, receiver.NewClient(v["type"], v, k))
+	if n == -1 {
+		if t.Receiver.Save != nil {
+			w.receiver = append(w.receiver, receiver.NewDownload(*t.Receiver.Save))
+		}
+		for k, v := range t.Receiver.Client {
+			// nlfunc().Infof("%#v", v)
+			w.receiver = append(w.receiver, receiver.NewClient(v["type"], v, k))
+		}
 	}
 
 	nlfunc().Tracef("%#v\n", w)
@@ -164,6 +166,8 @@ func (w *worker) push(it []feed.Item) {
 			log := w.logger().WithFields(logrus.Fields{
 				"title": item.Title,
 			})
+
+			start := time.Now()
 			req, e := http.NewRequest("GET", item.URL, nil)
 			if e != nil {
 				log.Warn("new request: ", e)
@@ -200,7 +204,7 @@ func (w *worker) push(it []feed.Item) {
 
 			for k := range w.receiver {
 				go func(i int) {
-					start := time.Now()
+
 					err := w.receiver[i].Push(body, item.Title)
 					if err != nil {
 						log.Warn("push to ", w.receiver[i].Name(), " : ", err)
