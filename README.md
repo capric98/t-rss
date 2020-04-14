@@ -1,6 +1,9 @@
 ## t-rss
 t-rss是一个自动rss bt种子文件的程序，相比flexget丰富的功能，t-rss功能较为精简，同时体积更小、占用资源更少，支持自动将rss得到的种子文件添加至bt客户端（目前支持qBittorrent和Deluge（未完整测试过）），将来会加入从irc获取资源信息的功能（irc已经不想写了。）
 
+从v0.6.x开始配置文件格式有所改变，与之前不再兼容，且v0.6.x的稳定性还未经历时间检验，建议一般用户使用v0.5.4beta版本，并且查看老版本的README来编写配置文件
+https://github.com/capric98/t-rss/blob/d8b0c0be0acf251b7e24c183039dc61b39cce80c/README-zh_CN.md
+
 ## 安装
 首先[下载](https://github.com/capric98/t-rss/releases)最新的pre-release or release中系统/架构对应的压缩包
 
