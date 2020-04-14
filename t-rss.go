@@ -80,7 +80,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 			n = 1
 		}
 		doTask(bgCtx, n, v, client, func() *logrus.Entry {
-			return backgroundLogger.WithField("task", kk)
+			return backgroundLogger.WithField("@task", kk)
 		}, &wg, config.Global.History.Save+k+"/")
 	}
 
