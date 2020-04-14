@@ -164,7 +164,11 @@ func (w *worker) push(it []feed.Item) {
 			log := w.logger().WithFields(logrus.Fields{
 				"title": item.Title,
 			})
-			req, _ := http.NewRequest("GET", item.URL, nil)
+			req, e := http.NewRequest("GET", item.URL, nil)
+			if e != nil {
+				log.Warn("new request: ", e)
+				return
+			}
 			for hk, hv := range w.header {
 				req.Header.Add(hk, hv)
 			}
