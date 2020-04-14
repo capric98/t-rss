@@ -1,6 +1,7 @@
 package trss
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -8,7 +9,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func checkAndWatchHistory(path string, maxAge time.Duration, log *logrus.Logger) {
+type file struct {
+	path string
+	info os.FileInfo
+}
+
+func checkAndWatchHistory(path string, maxNum int, log *logrus.Logger) {
 	if _, e := os.Stat(path); os.IsNotExist(e) {
 		log.WithFields(logrus.Fields{
 			"@func": "checkAndWatchHistory",
@@ -19,48 +25,97 @@ func checkAndWatchHistory(path string, maxAge time.Duration, log *logrus.Logger)
 			log.Fatal(e)
 		}
 	}
-	go watchHistroy(path, maxAge, log.WithField("@func", "watchHistory"))
+	go watchHistroy(path, maxNum, log.WithField("@func", "watchHistory"))
 }
 
-func watchHistroy(path string, maxAge time.Duration, log *logrus.Entry) {
+func watchHistroy(path string, maxNum int, log *logrus.Entry) {
 	log.Debug("start to watch history dir")
 	for {
-		fl, e := walkDir(path)
-		if e != nil {
-			log.Warn("walkDir:", e)
-			continue
-		}
-		for _, v := range fl {
-			if info, err := os.Stat(v); err == nil {
-				mod := time.Since(info.ModTime())
-				log.WithFields(logrus.Fields{
-					"filename": info.Name(),
-				}).Trace(
-					"moded ", mod, " ago",
-				)
-
-				if mod > maxAge {
-					log.WithField("filename", info.Name()).Debug("delete old history file")
-					err = os.Remove(v)
-					if err != nil {
-						log.Warn("delete: ", err)
-					}
+		var subdir []string
+		e := filepath.Walk(path, func(p string, i os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if i.IsDir() {
+				if p != path {
+					subdir = append(subdir, p)
+					return filepath.SkipDir
 				}
 			}
+			return nil
+		})
+		if e != nil {
+			log.Warn("walk: ", e)
+			continue
+		}
+		for k := range subdir {
+			log.Debug("clean subdir: ", subdir[k])
+			cleanDir(subdir[k], maxNum, log)
 		}
 		time.Sleep(12 * time.Hour)
 	}
 }
 
-func walkDir(hd string) (fl []string, e error) {
-	e = filepath.Walk(hd, func(path string, info os.FileInfo, err error) error {
+func cleanDir(path string, maxNum int, log *logrus.Entry) {
+	var f []file
+	e := filepath.Walk(path, func(p string, i os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
-			fl = append(fl, path)
+		if !i.IsDir() {
+			f = append(f, file{
+				info: i,
+				path: p,
+			})
+		} else {
+			if p != path {
+				return filepath.SkipDir
+			}
 		}
 		return nil
 	})
-	return
+	if e != nil {
+		log.Warn("walk: ", e)
+		return
+	}
+	log.Debug("find ", len(f), " files in ", path)
+	if len(f) > maxNum {
+		sort(f)
+		f = f[maxNum:]
+		for k := range f {
+			log.Debug("delete old history: ", f[k].info.Name())
+			if e := os.Remove(f[k].path); e != nil {
+				log.Warn("delete old history: ", f[k].info.Name(), " - ", e)
+			}
+		}
+	}
+}
+
+func sort(a []file) {
+	ll := len(a)
+	l, r := 0, ll-1
+	if l >= r {
+		return
+	}
+	key := a[l+rand.Intn(r-l)].info.ModTime()
+	for l <= r {
+		for ; key.Before(a[l].info.ModTime()); l++ {
+		}
+		for ; a[r].info.ModTime().Before(key); r-- {
+		}
+		if l <= r {
+			tmp := a[l]
+			a[l] = a[r]
+			a[r] = tmp
+			l++
+			r--
+		}
+	}
+
+	if l < ll {
+		sort(a[l:])
+	}
+	if 0 < r {
+		sort(a[:r])
+	}
 }

@@ -29,8 +29,8 @@ type C struct {
 type Global struct {
 	LogFile string `yaml:"log_file"`
 	History struct {
-		MaxAge Duration `yaml:"max_age"`
-		Save   string   `yaml:"save_to"`
+		MaxNum int    `yaml:"max_num"`
+		Save   string `yaml:"save_to"`
 	} `yaml:"history"`
 	Timeout Duration `yaml:"timeout"`
 }
@@ -115,8 +115,8 @@ func (c *C) standardize() {
 	if c.Global.Timeout.T == 0 {
 		c.Global.Timeout.T = 30 * time.Second
 	}
-	if c.Global.History.MaxAge.T == 0 {
-		c.Global.History.MaxAge.T = 30 * 24 * time.Hour
+	if c.Global.History.MaxNum == 0 {
+		c.Global.History.MaxNum = 500
 	}
 	if c.Global.History.Save == "" {
 		c.Global.History.Save = ".t-rss_History/"

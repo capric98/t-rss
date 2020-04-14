@@ -64,7 +64,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 	}
 	checkAndWatchHistory(
 		config.Global.History.Save,
-		config.Global.History.MaxAge.T,
+		config.Global.History.MaxNum,
 		backgroundLogger,
 	)
 

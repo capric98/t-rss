@@ -8,7 +8,7 @@ GLOBAL:
 TASKS:
   Name_of_task0:
     rss:
-      url: http(s)://example.com
+      url: https://example.com
       method: GET #*delete this except you know what this means
       headers:    #*if needed
         Cookie: something
@@ -16,8 +16,8 @@ TASKS:
       interval: 10s # {int}s/m/h/d
     filter:
       content_size:
-        min:
-        max:
+        min: 10MB340KB
+        max: 120G10MB
       regexp:
         accept:
           - A
@@ -25,7 +25,7 @@ TASKS:
           - B
     quota:
       num: 65535
-      size:
+      size: 100G
     edit:
       tracker:
         delete:
@@ -38,7 +38,7 @@ TASKS:
       client:
         Name_of_client0:
           type: qBittorrent
-          url: http(s)://example.com
+          url: http://127.0.0.1
           username: admin
           password: adminadmin
           dlLimit:
@@ -53,12 +53,12 @@ TASKS:
 
   Name_of_task1:
     rss:
-      url: http(s)://example.com
+      url: https://example.com
     receiver:
       save_path: /home/WatchDir/
   Name_of_task2:
     rss:
-      url: http(s)://example.com
+      url: https://example.com
     receiver:
       save_path: /home/WatchDir/
     

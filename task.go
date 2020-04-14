@@ -109,7 +109,7 @@ func (w *worker) do(wg *sync.WaitGroup) {
 
 				// Check if have seen.
 				if _, err := os.Stat(w.historyPath + v.GUID); !os.IsNotExist(err) {
-					log.Debug(`reject "`, v.Title, `" - have seen before.`)
+					log.Debug("(reject) ", v.Title, " have seen before.")
 					reject++
 					continue
 				} else {
@@ -122,29 +122,29 @@ func (w *worker) do(wg *sync.WaitGroup) {
 				}
 				// Check regexp filter.
 				if match, ms := checkRegexp(v, w.reject); match {
-					log.Info(`reject "`, v.Title, `" with matching Reject - `, ms)
+					log.Info("(reject) ", v.Title, " with matching Reject - ", ms)
 					reject++
 					continue
 				}
 				if match, _ := checkRegexp(v, w.accept); (len(w.accept) > 0) && (!match) {
-					log.Info(`reject "`, v.Title, `" with no matching Accept`)
+					log.Info("(reject) ", v.Title, " with no matching Accept.")
 					reject++
 					continue
 				}
 				// Check content_size.
 				if v.Len != 0 && (v.Len < w.min || v.Len > w.max) {
-					log.Info(`reject "`, v.Title, `" - `, v.Len, " not in [", w.min, ",", w.max, "]")
+					log.Info("(reject) ", v.Title, `" - `, v.Len, " not in [", w.min, ",", w.max, "]")
 					reject++
 					continue
 				}
 				// Check quota
 				if quota.Num <= 0 || quota.Size.I < v.Len {
-					log.Info(`reject "`, v.Title, `" - quota exceeded(left num=`, quota.Num, " size=", unit.FormatSize(quota.Size.I), ")")
+					log.Info("(reject) ", v.Title, " - quota exceeded(left num=", quota.Num, " size=", unit.FormatSize(quota.Size.I), ")")
 					reject++
 					continue
 				}
 
-				log.Info("accept ", v.Title)
+				log.Info("(accept) ", v.Title)
 				passed = append(passed, v)
 				accept++
 				quota.Num--
