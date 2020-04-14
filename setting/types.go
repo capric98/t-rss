@@ -72,7 +72,7 @@ type Edit struct {
 // Receiver defines tasks' receiver(s).
 type Receiver struct {
 	Delay  Duration                          `yaml:"delay"`
-	Save   *string                           `yaml:"save_to"`
+	Save   *string                           `yaml:"save_path"`
 	Client map[string]map[string]interface{} `yaml:"client"`
 }
 

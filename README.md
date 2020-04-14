@@ -51,7 +51,7 @@ TASKS:
           - http(s)://example.com/
     receiver:
       delay: 12s
-      save_to: /home/WatchDir/
+      save_path: /home/WatchDir/
       client:
         Name_of_client0:
           type: qBittorrent

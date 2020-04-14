@@ -157,7 +157,7 @@ func (w *worker) do(wg *sync.WaitGroup) {
 }
 
 func (w *worker) push(it []feed.Item) {
-	for _, v := range it {
+	for k := range it {
 		go func(item feed.Item) {
 			time.Sleep(w.delay)
 
@@ -209,7 +209,7 @@ func (w *worker) push(it []feed.Item) {
 					}
 				}(k)
 			}
-		}(v)
+		}(it[k])
 	}
 }
 

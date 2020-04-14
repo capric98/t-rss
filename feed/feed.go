@@ -54,6 +54,9 @@ func Parse(body []byte) (i []Item, e error) {
 		if i[k].GUID == "" {
 			i[k].GUID = i[k].Title
 		}
+		if i[k].URL == "" {
+			i[k].URL = i[k].Link
+		}
 		i[k].GUID = regularizeFilename(i[k].GUID)
 	}
 
