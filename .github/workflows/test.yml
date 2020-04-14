@@ -13,7 +13,7 @@ jobs:
 
     - name: Set up Go LATEST
       run: |
-        sudo curl -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
+        curl -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
         source ~/.bashrc
 
     - name: Check out code into the Go module directory
