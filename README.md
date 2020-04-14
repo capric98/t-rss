@@ -50,6 +50,7 @@ TASKS:
         add:
           - http(s)://example.com/
     receiver:
+      delay: 12s
       save_to: /home/WatchDir/
       client:
         Name_of_client0:
@@ -70,13 +71,13 @@ TASKS:
   Name_of_task1:
     rss:
       url: http(s)://example.com
-      receiver:
-        save_path: /home/WatchDir/
+    receiver:
+      save_path: /home/WatchDir/
   Name_of_task2:
     rss:
       url: http(s)://example.com
-      receiver:
-        save_path: /home/WatchDir/
+    receiver:
+      save_path: /home/WatchDir/
 
 ```
 

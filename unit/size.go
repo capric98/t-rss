@@ -27,7 +27,12 @@ func ParseSize(s string) int64 {
 	miB, _ := strconv.ParseInt(toD.FindString(miBReg.FindString(s)), 10, 64)
 	giB, _ := strconv.ParseInt(toD.FindString(giBReg.FindString(s)), 10, 64)
 	tiB, _ := strconv.ParseInt(toD.FindString(tiBReg.FindString(s)), 10, 64)
-	return tiB<<40 + giB<<30 + miB<<20 + kiB<<10 + b
+	size := tiB<<40 + giB<<30 + miB<<20 + kiB<<10 + b
+	if size == 0 {
+		b, _ = strconv.ParseInt(toD.FindString(s), 10, 64)
+		size = b
+	}
+	return size
 }
 
 // FormatSize :)

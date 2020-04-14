@@ -41,6 +41,9 @@ func WithConfigFile(filename string, level string, learn bool) {
 	if e != nil {
 		backgroundLogger.Fatal("parse config file: ", e)
 	}
+
+	backgroundLogger.Tracef("%#v\n", *config)
+
 	if config.Global.LogFile == "" {
 		formatter.ForceColors = true
 		backgroundLogger.SetOutput(colorable.NewColorableStderr())
@@ -69,6 +72,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 	bgCtx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	for k, v := range config.Tasks {
+		kk := k // make a copy
 		wg.Add(1)
 		n := -1
 		if learn {
@@ -76,7 +80,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 			n = 1
 		}
 		doTask(bgCtx, n, v, client, func() *logrus.Entry {
-			return backgroundLogger.WithField("task", k)
+			return backgroundLogger.WithField("task", kk)
 		}, &wg, config.Global.History.Save+k+"/")
 	}
 

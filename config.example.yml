@@ -1,15 +1,15 @@
 GLOBAL:
-  log_file: # empty -> stderr
+  log_file: # delete this to output log to stderr
   history:
-    max_age: 30s # {int}s/m/h/d
-    save_to: # ~/home/.t-rss/history/
-  timeout: 1m
+    max_num: 300 # max history record nums
+    save_to: # default: ./.t-rss_History
+  timeout: 1m # {int}s/m/h/d
 
 TASKS:
   Name_of_task0:
     rss:
       url: http(s)://example.com
-      method: GET #*GET/POST
+      method: GET #*delete this except you know what this means
       headers:    #*if needed
         Cookie: something
         Key: Value
@@ -33,6 +33,7 @@ TASKS:
         add:
           - http(s)://example.com/
     receiver:
+      delay: 12s
       save_to: /home/WatchDir/
       client:
         Name_of_client0:
@@ -42,7 +43,7 @@ TASKS:
           password: adminadmin
           dlLimit:
           upLimit:
-          pause: true
+          paused: true
           savepath: /home/Downloads
         Name_of_client1:
           type: Deluge
@@ -53,11 +54,11 @@ TASKS:
   Name_of_task1:
     rss:
       url: http(s)://example.com
-      receiver:
-        save_path: /home/WatchDir/
+    receiver:
+      save_path: /home/WatchDir/
   Name_of_task2:
     rss:
       url: http(s)://example.com
-      receiver:
-        save_path: /home/WatchDir/
+    receiver:
+      save_path: /home/WatchDir/
     

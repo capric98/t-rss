@@ -9,6 +9,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Int64 is int64
+type Int64 struct {
+	I int64
+}
+
 // Duration wraps time.Duration
 type Duration struct {
 	T time.Duration
@@ -56,7 +61,7 @@ type Filter struct {
 // Quota :)
 type Quota struct {
 	Num  int   `yaml:"num"`
-	Size int64 `yaml:"size"`
+	Size Int64 `yaml:"size"`
 }
 
 // Edit :)
@@ -66,14 +71,15 @@ type Edit struct {
 
 // Receiver defines tasks' receiver(s).
 type Receiver struct {
+	Delay  Duration                          `yaml:"delay"`
 	Save   *string                           `yaml:"save_to"`
 	Client map[string]map[string]interface{} `yaml:"client"`
 }
 
 // ContentSize :)
 type ContentSize struct {
-	Min int64 `yaml:"min"`
-	Max int64 `yaml:"max"`
+	Min Int64 `yaml:"min"`
+	Max Int64 `yaml:"max"`
 }
 
 // RegexpConfig :)
@@ -125,14 +131,14 @@ func (c *C) standardize() {
 		if v.Rss.Interval.T == 0 {
 			v.Rss.Interval.T = 30 * time.Second
 		}
-		if v.Filter.ContentSize.Max == 0 {
-			v.Filter.ContentSize.Max = 1 << 62
+		if v.Filter.ContentSize.Max.I == 0 {
+			v.Filter.ContentSize.Max.I = 1 << 62
 		}
 		if v.Quota.Num == 0 {
 			v.Quota.Num = 1 << 30
 		}
-		if v.Quota.Size == 0 {
-			v.Quota.Size = 1 << 62
+		if v.Quota.Size.I == 0 {
+			v.Quota.Size.I = 1 << 62
 		}
 	}
 }
@@ -157,5 +163,17 @@ func (r *Reg) UnmarshalYAML(uf func(interface{}) error) (e error) {
 	}
 	r.C = s
 	r.R, e = regexp.Compile(s)
+	return
+}
+
+// UnmarshalYAML :)
+func (n *Int64) UnmarshalYAML(uf func(interface{}) error) (e error) {
+	var s string
+	e = uf(&s)
+	if e != nil {
+		return
+	}
+	n.I = unit.ParseSize(s)
+	e = nil
 	return
 }

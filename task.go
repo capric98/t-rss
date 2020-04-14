@@ -25,7 +25,9 @@ type worker struct {
 	min, max       int64
 	quota          setting.Quota
 	edit           *setting.Edit
-	receiver       []receiver.Receiver
+
+	delay    time.Duration
+	receiver []receiver.Receiver
 
 	header      map[string]string
 	ctx         context.Context
@@ -44,10 +46,11 @@ func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nl
 	w := &worker{
 		accept:      t.Filter.Regexp.Accept,
 		reject:      t.Filter.Regexp.Reject,
-		min:         t.Filter.ContentSize.Min,
-		max:         t.Filter.ContentSize.Max,
+		min:         t.Filter.ContentSize.Min.I,
+		max:         t.Filter.ContentSize.Max.I,
 		quota:       t.Quota,
 		edit:        t.Edit,
+		delay:       t.Receiver.Delay.T,
 		header:      t.Rss.Headers,
 		ctx:         ctx,
 		logger:      nlfunc,
@@ -56,7 +59,10 @@ func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nl
 	w.Client = client
 
 	if t.Rss != nil {
-		req, _ := http.NewRequest(t.Rss.Method, t.Rss.URL, nil)
+		req, err := http.NewRequest(t.Rss.Method, t.Rss.URL, nil)
+		if err != nil {
+			nlfunc().Fatal(err)
+		}
 		for k, v := range t.Rss.Headers {
 			req.Header.Add(k, v)
 		}
@@ -72,7 +78,7 @@ func doTask(ctx context.Context, n int, t *setting.Task, client *http.Client, nl
 		w.receiver = append(w.receiver, receiver.NewClient(v["type"], v, k))
 	}
 
-	// nlfunc().Debugf("%#v\n", w)
+	nlfunc().Tracef("%#v\n", w)
 	go w.do(wg)
 }
 
@@ -97,7 +103,7 @@ func (w *worker) do(wg *sync.WaitGroup) {
 				log := w.logger().WithFields(logrus.Fields{
 					"author":   v.Author,
 					"category": v.Category,
-					"hash":     v.GUID,
+					"GUID":     v.GUID,
 					"size":     unit.FormatSize(v.Len),
 				})
 
@@ -132,8 +138,8 @@ func (w *worker) do(wg *sync.WaitGroup) {
 					continue
 				}
 				// Check quota
-				if quota.Num <= 0 || quota.Size < v.Len {
-					log.Info(`reject "`, v.Title, `" - quota exceeded(left num=`, quota.Num, " size=", unit.FormatSize(quota.Size), ")")
+				if quota.Num <= 0 || quota.Size.I < v.Len {
+					log.Info(`reject "`, v.Title, `" - quota exceeded(left num=`, quota.Num, " size=", unit.FormatSize(quota.Size.I), ")")
 					reject++
 					continue
 				}
@@ -142,7 +148,7 @@ func (w *worker) do(wg *sync.WaitGroup) {
 				passed = append(passed, v)
 				accept++
 				quota.Num--
-				quota.Size -= v.Len
+				quota.Size.I -= v.Len
 			}
 			w.logger().Info("accepted ", accept, " item(s), rejected ", reject, " item(s)")
 			go w.push(passed)
@@ -153,6 +159,8 @@ func (w *worker) do(wg *sync.WaitGroup) {
 func (w *worker) push(it []feed.Item) {
 	for _, v := range it {
 		go func(item feed.Item) {
+			time.Sleep(w.delay)
+
 			log := w.logger().WithFields(logrus.Fields{
 				"title": item.Title,
 			})
