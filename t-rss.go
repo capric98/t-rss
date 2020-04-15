@@ -79,9 +79,28 @@ func WithConfigFile(filename string, level string, learn bool) {
 	for k, v := range config.Tasks {
 		kk := k // make a copy
 		wg.Add(1)
-		doTask(bgCtx, runNum, v, client, func() *logrus.Entry {
-			return backgroundLogger.WithField("@task", kk)
-		}, &wg, config.Global.History.Save+k+"/")
+
+		nw := &worker{
+			client: client,
+			header: v.Rss.Headers,
+			tick:   nil,
+
+			filters: nil,
+			recvers: nil,
+			quota:   v.Quota,
+			delay:   v.Receiver.Delay.T,
+			wpath:   config.Global.History.Save + kk + "/",
+
+			edit: v.Edit,
+
+			logger: func() *logrus.Entry {
+				return backgroundLogger.WithField("@task", kk)
+			},
+			ctx: bgCtx,
+			wg:  &wg,
+		}
+		nw.prepare(v, runNum)
+		go nw.loop()
 	}
 
 	c := make(chan os.Signal, 10)

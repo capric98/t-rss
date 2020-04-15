@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -84,6 +85,22 @@ func (w *worker) loop() {
 					"GUID":     items[k].GUID,
 					"size":     unit.FormatSize(items[k].Len),
 				})
+
+				// Check if have seen.
+				historyPath := w.wpath + items[k].GUID
+				if _, err := os.Stat(historyPath); !os.IsNotExist(err) {
+					log.Debug("(reject) ", items[k].Title, " have seen before.")
+					reject++
+					continue
+				} else {
+					hf, err := os.Create(historyPath)
+					if err != nil {
+						log.Warn("create history file: ", err)
+					} else {
+						hf.Close()
+					}
+				}
+
 				flag := true
 				for _, f := range w.filters {
 					if e := f.Check(&items[k]); e != nil {
@@ -100,6 +117,7 @@ func (w *worker) loop() {
 				}
 			}
 			w.logger().Info("accepted ", accept, " item(s), rejected ", reject, " item(s).")
+			go w.push(passed)
 		}
 	}
 }
