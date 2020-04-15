@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	version = "0.6.4-beta"
+	version = "v0.6.5-beta"
 	intro   = fmt.Sprintf("t-rss %v %v/%v (%v build)\n", version, runtime.GOOS, runtime.GOARCH, runtime.Version())
 )
 

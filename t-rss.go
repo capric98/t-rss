@@ -99,7 +99,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 			ctx: bgCtx,
 			wg:  &wg,
 		}
-		backgroundLogger.Debugf("%#v\n", nw.header)
+		// backgroundLogger.Debugf("%#v\n", nw.header)
 		nw.prepare(v, runNum)
 		go nw.loop()
 	}
