@@ -1,6 +1,7 @@
 package setting
 
 import (
+	"fmt"
 	"io"
 	"regexp"
 	"time"
@@ -46,10 +47,10 @@ type Task struct {
 
 // Rss :)
 type Rss struct {
-	URL      string              `yaml:"url"`
-	Method   string              `yaml:"method"`
-	Headers  map[string][]string `yaml:"headers"`
-	Interval Duration            `yaml:"interval"`
+	URL      string   `yaml:"url"`
+	Method   string   `yaml:"method"`
+	Headers  Header   `yaml:"headers"`
+	Interval Duration `yaml:"interval"`
 }
 
 // Filter :)
@@ -98,6 +99,11 @@ type Reg struct {
 type Tracker struct {
 	Delete []Reg    `yaml:"delete"`
 	Add    []string `yaml:"add"`
+}
+
+// Header :)
+type Header struct {
+	H map[string][]string
 }
 
 // Parse :)
@@ -175,5 +181,27 @@ func (n *Int64) UnmarshalYAML(uf func(interface{}) error) (e error) {
 	}
 	n.I = unit.ParseSize(s)
 	e = nil
+	return
+}
+
+// UnmarshalYAML :)
+func (h *Header) UnmarshalYAML(uf func(interface{}) error) (e error) {
+	if h.H == nil {
+		h.H = make(map[string][]string)
+	}
+	var header map[string]interface{}
+	e = uf(&header)
+	for k, v := range header {
+		switch vi := v.(type) {
+		case string:
+			h.H[k] = append(h.H[k], vi)
+		case []string:
+			for i := range vi {
+				h.H[k] = append(h.H[k], vi[i])
+			}
+		default:
+			h.H[k] = append(h.H[k], fmt.Sprintf("%v", vi))
+		}
+	}
 	return
 }

@@ -89,7 +89,7 @@ func (w *worker) loop() {
 				// Check if have seen.
 				historyPath := w.wpath + items[k].GUID
 				if _, err := os.Stat(historyPath); !os.IsNotExist(err) {
-					log.Debug("(reject) ", items[k].Title, " have seen before.")
+					log.Trace("(reject) have seen ", items[k].Title, " before.")
 					reject++
 					continue
 				} else {

@@ -82,11 +82,11 @@ func WithConfigFile(filename string, level string, learn bool) {
 
 		nw := &worker{
 			client: client,
-			header: v.Rss.Headers,
-			tick:   nil,
+			header: v.Rss.Headers.H,
+			tick:   nil, // https://github.com/capric98/t-rss/blob/master/task.go#L40
 
-			filters: nil,
-			recvers: nil,
+			filters: nil, // https://github.com/capric98/t-rss/blob/master/task.go#L50
+			recvers: nil, // https://github.com/capric98/t-rss/blob/master/task.go#L54
 			quota:   v.Quota,
 			delay:   v.Receiver.Delay.T,
 			wpath:   config.Global.History.Save + kk + "/",
@@ -99,6 +99,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 			ctx: bgCtx,
 			wg:  &wg,
 		}
+		backgroundLogger.Debugf("%#v\n", nw.header)
 		nw.prepare(v, runNum)
 		go nw.loop()
 	}

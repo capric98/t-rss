@@ -21,7 +21,15 @@ func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Ite
 	log = log.WithField("@func", "rssTicker")
 
 	times := byte(0)
+	retry := 0
 	for {
+		if retry == 3 {
+			log.Debug("reset ticker due to too many retry")
+			retry = 0
+			time.Sleep(interval)
+		}
+		retry++
+
 		resp, e := client.Do(req)
 		if e != nil {
 			log.Warn(e)
@@ -43,5 +51,6 @@ func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Ite
 			return
 		}
 		time.Sleep(interval)
+		retry = 0
 	}
 }
