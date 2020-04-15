@@ -21,6 +21,9 @@ func NewContentSizeFilter(min, max int64) Filter {
 
 // Check meets Filter.Check() interface.
 func (f *contentSizeFilter) Check(v *feed.Item) error {
+	if v.Len == 0 {
+		return nil
+	} // check it later
 	if v.Len < f.min {
 		return fmt.Errorf("content_size: %v < minSize:%v", unit.FormatSize(v.Len), unit.FormatSize(f.min))
 	}
