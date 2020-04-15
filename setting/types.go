@@ -46,10 +46,10 @@ type Task struct {
 
 // Rss :)
 type Rss struct {
-	URL      string            `yaml:"url"`
-	Method   string            `yaml:"method"`
-	Headers  map[string]string `yaml:"headers"`
-	Interval Duration          `yaml:"interval"`
+	URL      string              `yaml:"url"`
+	Method   string              `yaml:"method"`
+	Headers  map[string][]string `yaml:"headers"`
+	Interval Duration            `yaml:"interval"`
 }
 
 // Filter :)

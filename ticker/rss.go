@@ -34,6 +34,7 @@ func rssTicker(n int, req *http.Request, client *http.Client, ch chan []feed.Ite
 		items, e := feed.Parse(body)
 		if e != nil {
 			log.Warn("parse: ", e)
+			continue
 		}
 		ch <- items
 

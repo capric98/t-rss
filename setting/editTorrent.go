@@ -1,31 +1,31 @@
-package trss
+package setting
 
 import (
 	"fmt"
 
 	"github.com/capric98/t-rss/bencode"
-	"github.com/sirupsen/logrus"
 )
 
-func (w *oworker) editTorrent(data []byte) (en []byte) {
-	defer func() { _ = recover() }()
-
-	log := w.logger().WithFields(logrus.Fields{
-		"@func": "editTorrent",
-	})
+// EditTorrent tmp
+func (edt *Edit) EditTorrent(data []byte) (en []byte, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = p.(error)
+		}
+	}()
 
 	results, err := bencode.Decode(data)
 	if err != nil || len(results) != 1 {
-		log.Warn("decode: ", err)
+		err = fmt.Errorf("decode: %v", err)
 		return
 	}
 	torrent := results[0]
 
-	for _, reg := range w.edit.Tracker.Delete {
+	for _, reg := range edt.Tracker.Delete {
 		announce := torrent.Dict("announce")
 		if announce != nil {
 			if reg.R.Match(announce.BStr()) {
-				log.Debug(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete announce.", announce.BStr(), reg.C), 0)
+				// log.Debug(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete announce.", announce.BStr(), reg.C), 0)
 				torrent.Delete("announce")
 				continue
 			}
@@ -36,7 +36,7 @@ func (w *oworker) editTorrent(data []byte) (en []byte) {
 				subList := announceList.List(i - 1)
 				for s := subList.Len(); s > 0; s-- {
 					if reg.R.Match(subList.List(s - 1).BStr()) {
-						log.Debug(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete part of announce-list.", subList.List(s-1).BStr(), reg.C), 0)
+						// log.Debug(fmt.Sprintf(" + edit tracker: \"%s\" matches \"%s\", delete part of announce-list.", subList.List(s-1).BStr(), reg.C), 0)
 						subList.DeleteN(s - 1)
 						break
 					}
@@ -52,9 +52,9 @@ func (w *oworker) editTorrent(data []byte) (en []byte) {
 	}
 
 	var waitList []string
-	for _, add := range w.edit.Tracker.Add {
+	for _, add := range edt.Tracker.Add {
 		if torrent.Dict("announce") == nil {
-			log.Debug("announce add "+"\""+add+"\"", 0)
+			// log.Debug("announce add "+"\""+add+"\"", 0)
 			_ = torrent.AddPart("announce", bencode.NewBStr(add))
 			continue
 		}
@@ -65,7 +65,7 @@ func (w *oworker) editTorrent(data []byte) (en []byte) {
 	}
 	list := torrent.Dict("announce-list")
 	list.AnnounceList(waitList)
-	log.Debug("check ", torrent.Check())
+	// log.Debug("check ", torrent.Check())
 
 	en, _ = torrent.Encode()
 

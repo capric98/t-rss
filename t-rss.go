@@ -71,15 +71,15 @@ func WithConfigFile(filename string, level string, learn bool) {
 	client := &http.Client{Timeout: config.Global.Timeout.T}
 	bgCtx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
+	runNum := -1
+	if learn {
+		backgroundLogger.Info("Learning...")
+		runNum = 1
+	}
 	for k, v := range config.Tasks {
 		kk := k // make a copy
 		wg.Add(1)
-		n := -1
-		if learn {
-			backgroundLogger.Info("Learning...")
-			n = 1
-		}
-		doTask(bgCtx, n, v, client, func() *logrus.Entry {
+		doTask(bgCtx, runNum, v, client, func() *logrus.Entry {
 			return backgroundLogger.WithField("@task", kk)
 		}, &wg, config.Global.History.Save+k+"/")
 	}
@@ -100,5 +100,8 @@ func WithConfigFile(filename string, level string, learn bool) {
 	}
 
 	cancel()
+	backgroundLogger.Info("gracefully shutting down...")
+	wg.Wait()
+	backgroundLogger.Info("bye~")
 	_ = backgroundLogger.Writer().Close()
 }
