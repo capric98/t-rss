@@ -1,10 +1,11 @@
 package receiver
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/capric98/t-rss/feed"
 )
 
 type dReceiver struct {
@@ -24,11 +25,8 @@ func NewDownload(path string) Receiver {
 }
 
 // Push implements Receiver interface.
-func (r *dReceiver) Push(b []byte, i interface{}) (e error) {
-	fn, ok := i.(string)
-	if !ok {
-		return fmt.Errorf("expected a string but got %T", i)
-	}
+func (r *dReceiver) Push(i *feed.Item, b []byte) (e error) {
+	fn := i.Title
 	fn = regularizeFilename(fn)
 	e = ioutil.WriteFile(r.path+fn+".torrent", b, 0664)
 	return

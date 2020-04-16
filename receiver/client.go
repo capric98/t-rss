@@ -1,9 +1,8 @@
 package receiver
 
 import (
-	"fmt"
-
 	"github.com/capric98/t-rss/client"
+	"github.com/capric98/t-rss/feed"
 )
 
 // Client :)
@@ -28,10 +27,6 @@ func NewClient(tYPE interface{}, conf map[string]interface{}, name string) Recei
 }
 
 // Push :)
-func (c *Client) Push(b []byte, i interface{}) error {
-	fn, ok := i.(string)
-	if !ok {
-		return fmt.Errorf("wanted string but got %T", i)
-	}
-	return c.Client.Add(b, fn)
+func (c *Client) Push(i *feed.Item, b []byte) error {
+	return c.Client.Add(b, i.Title)
 }

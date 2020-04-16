@@ -196,7 +196,7 @@ func (w *worker) push(items []feed.Item) {
 			for i := range w.recvers {
 				recvwg.Add(1)
 				go func(recv receiver.Receiver) {
-					err := recv.Push(body, item.Title)
+					err := recv.Push(&item, body)
 					if err != nil {
 						log.Warn("push to ", recv.Name(), " : ", err)
 					} else {
