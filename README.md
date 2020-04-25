@@ -20,25 +20,25 @@ https://github.com/capric98/t-rss/blob/d8b0c0be0acf251b7e24c183039dc61b39cce80c/
 
 ```yaml
 GLOBAL:
-  log_file: # empty -> stderr
+  log_file: # delete this to output log to stderr
   history:
-    max_age: 30s # {int}s/m/h/d
-    save_to: # ~/home/.t-rss/history/
-  timeout: 1m
+    max_num: 300 # max history record nums
+    save_to: # default: ./.t-rss_History
+  timeout: 1m # {int}s/m/h/d
 
 TASKS:
   Name_of_task0:
     rss:
-      url: http(s)://example.com
-      method: GET #*GET/POST
+      url: https://example.com
+      method: GET #*delete this except you know what this means
       headers:    #*if needed
         Cookie: something
         Key: Value
       interval: 10s # {int}s/m/h/d
     filter:
       content_size:
-        min:
-        max:
+        min: 10MB340KB
+        max: 120G10MB
       regexp:
         accept:
           - A
@@ -46,7 +46,7 @@ TASKS:
           - B
     quota:
       num: 65535
-      size:
+      size: 100G
     edit:
       tracker:
         delete:
@@ -59,12 +59,12 @@ TASKS:
       client:
         Name_of_client0:
           type: qBittorrent
-          url: http(s)://example.com
+          url: http://127.0.0.1
           username: admin
           password: adminadmin
           dlLimit:
           upLimit:
-          pause: true
+          paused: true
           savepath: /home/Downloads
         Name_of_client1:
           type: Deluge
@@ -74,12 +74,12 @@ TASKS:
 
   Name_of_task1:
     rss:
-      url: http(s)://example.com
+      url: https://example.com
     receiver:
       save_path: /home/WatchDir/
   Name_of_task2:
     rss:
-      url: http(s)://example.com
+      url: https://example.com
     receiver:
       save_path: /home/WatchDir/
 
