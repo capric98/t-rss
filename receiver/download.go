@@ -50,8 +50,10 @@ func regularizeFilename(name string) string {
 	name = strings.ReplaceAll(name, "\n", "_")
 	name = strings.ReplaceAll(name, "\r", "_")
 	name = strings.ReplaceAll(name, " ", "_")
-	if len(name) > 255 {
-		name = name[:255]
+
+	nameRune := []rune(name)
+	for len(string(nameRune)) > 200 {
+		nameRune = nameRune[:len(nameRune)-1]
 	}
-	return name
+	return string(nameRune)
 }
