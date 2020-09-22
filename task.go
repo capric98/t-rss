@@ -39,7 +39,7 @@ type worker struct {
 func (w *worker) prepare(t *setting.Task, num int) {
 	// check if log directory exists.
 	if _, e := os.Stat(w.wpath); os.IsNotExist(e) {
-		e = os.MkdirAll(w.wpath, 0640)
+		e = os.MkdirAll(w.wpath, 0740)
 		if e != nil {
 			w.logger().Fatal("create log dir: ", e)
 		}

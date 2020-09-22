@@ -51,7 +51,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 		fw, fe := os.OpenFile(
 			config.Global.LogFile,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-			0640,
+			0740,
 		)
 		if fe != nil {
 			backgroundLogger.Fatal(fe)
