@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -94,7 +95,7 @@ func (w *worker) loop() {
 				})
 
 				// Check if have seen.
-				historyPath := w.wpath + items[k].GUID
+				historyPath := path.Join(w.wpath, items[k].GUID)
 				if _, err := os.Stat(historyPath); !os.IsNotExist(err) {
 					log.Trace("(reject) have seen ", items[k].Title, " before.")
 					reject++

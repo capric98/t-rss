@@ -3,6 +3,7 @@ package receiver
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/capric98/t-rss/feed"
@@ -14,11 +15,8 @@ type dReceiver struct {
 
 // NewDownload news a download receiver
 func NewDownload(path string) Receiver {
-	if path[len(path)-1] != '/' {
-		path = path + "/"
-	}
 	if _, e := os.Stat(path); os.IsNotExist(e) {
-		_ = os.MkdirAll(path, 0640)
+		_ = os.MkdirAll(path, 0740)
 	}
 
 	return &dReceiver{path: path}
@@ -28,7 +26,7 @@ func NewDownload(path string) Receiver {
 func (r *dReceiver) Push(i *feed.Item, b []byte) (e error) {
 	fn := i.Title
 	fn = regularizeFilename(fn)
-	e = ioutil.WriteFile(r.path+fn+".torrent", b, 0664)
+	e = ioutil.WriteFile(path.Join(r.path, fn+".torrent"), b, 0664)
 	return
 }
 

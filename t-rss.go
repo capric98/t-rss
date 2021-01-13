@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
 
@@ -59,9 +60,6 @@ func WithConfigFile(filename string, level string, learn bool) {
 		backgroundLogger.SetOutput(fw)
 	}
 
-	if config.Global.History.Save[len(config.Global.History.Save)-1] != '/' {
-		config.Global.History.Save = config.Global.History.Save + "/"
-	}
 	checkAndWatchHistory(
 		config.Global.History.Save,
 		config.Global.History.MaxNum,
@@ -89,7 +87,7 @@ func WithConfigFile(filename string, level string, learn bool) {
 			recvers: nil, // https://github.com/capric98/t-rss/blob/master/task.go#L54
 			quota:   v.Quota,
 			delay:   v.Receiver.Delay.T,
-			wpath:   config.Global.History.Save + kk + "/",
+			wpath:   path.Join(config.Global.History.Save, kk),
 
 			edit: v.Edit,
 

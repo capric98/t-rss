@@ -20,7 +20,7 @@ func checkAndWatchHistory(path string, maxNum int, log *logrus.Logger) {
 			"@func": "checkAndWatchHistory",
 			"path":  path,
 		}).Info("path does not exsit, create it")
-		e = os.MkdirAll(path, 0640)
+		e = os.MkdirAll(path, 0740)
 		if e != nil {
 			log.Fatal(e)
 		}

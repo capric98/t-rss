@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 
 	trss "github.com/capric98/t-rss"
 )
@@ -19,8 +20,8 @@ var (
 func init() {
 	flag.Parse()
 	if _, e := os.Stat(*config); os.IsNotExist(e) {
-		fmt.Println("could not open " + *config + " , use " + userConfigDir + "/t-rss/config.yml instead.")
-		*config = userConfigDir + "/t-rss/config.yml"
+		fmt.Println("could not open "+*config+" , use", path.Join(userConfigDir, "/t-rss/config.yml"), "instead.")
+		*config = path.Join(userConfigDir, "/t-rss/config.yml")
 	}
 }
 
