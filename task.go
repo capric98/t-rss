@@ -223,7 +223,7 @@ func tLen(data []byte) (l int64) {
 
 	result, err := bencode.Decode(data)
 	if err != nil {
-		return
+		return -1
 	}
 	info := result[0].Dict("info")
 	pl := (info.Dict("piece length")).Value()
