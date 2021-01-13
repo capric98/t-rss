@@ -100,14 +100,15 @@ func (w *worker) loop() {
 					log.Trace("(reject) have seen ", items[k].Title, " before.")
 					reject++
 					continue
-				} else {
-					hf, err := os.Create(historyPath)
-					if err != nil {
-						log.Warn("create history file: ", err)
-					} else {
-						hf.Close()
-					}
-				}
+				} // else {
+				// 	hf, err := os.Create(historyPath)
+				// 	if err != nil {
+				// 		log.Warn("create history file: ", err)
+				// 	} else {
+				// 		hf.Close()
+				// 	}
+				// }
+				// move to push phase
 
 				flag := true
 				for _, f := range w.filters {
@@ -163,6 +164,22 @@ func (w *worker) push(items []feed.Item) {
 			if e != nil {
 				log.Warn("read response body: ", e)
 				return
+			}
+
+			if tLen(body) == -1 {
+				log.Info("got non-bencoded file, skip")
+				log.Debug("content: ", string(body))
+				return
+			}
+			// write history
+			historyPath := path.Join(w.wpath, item.GUID)
+			if _, err := os.Stat(historyPath); os.IsNotExist(err) {
+				hf, err := os.Create(historyPath)
+				if err != nil {
+					log.Warn("create history file: ", err)
+				} else {
+					hf.Close()
+				}
 			}
 
 			// double check in case of Len=0
