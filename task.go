@@ -100,15 +100,17 @@ func (w *worker) loop() {
 					log.Trace("(reject) have seen ", items[k].Title, " before.")
 					reject++
 					continue
-				} // else {
-				// 	hf, err := os.Create(historyPath)
-				// 	if err != nil {
-				// 		log.Warn("create history file: ", err)
-				// 	} else {
-				// 		hf.Close()
-				// 	}
-				// }
-				// move to push phase
+				}
+
+				if w.recvers == nil {
+					// learn -> create history file immediately
+					hf, err := os.Create(historyPath)
+					if err != nil {
+						log.Warn("create history file: ", err)
+					} else {
+						hf.Close()
+					}
+				} // else create history file at push phase
 
 				flag := true
 				for _, f := range w.filters {
