@@ -57,8 +57,8 @@ func NewqBclient(key string, m map[string]interface{}) *QBType {
 	if length := len(nc.settings["url"]); nc.settings["url"][length-1] == '/' {
 		nc.settings["url"] = nc.settings["url"][:length-1]
 	}
-	nc.settings["dlLimit"] = UConvert(nc.settings["dlLimit"])
-	nc.settings["upLimit"] = UConvert(nc.settings["upLimit"])
+	nc.settings["dlLimit"] = fmt.Sprintf("%.0f", UConvert(nc.settings["dlLimit"]))
+	nc.settings["upLimit"] = fmt.Sprintf("%.0f", UConvert(nc.settings["upLimit"]))
 
 	fcount := 1
 	initPrivateIP()

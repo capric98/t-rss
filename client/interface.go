@@ -1,7 +1,8 @@
 package client
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -11,32 +12,39 @@ type Client interface {
 	Name() string
 }
 
-// UConvert :)
-func UConvert(s string) string {
+// UConvert: convert a string which may contain unit to a float64 with bytes unit.
+func UConvert(s string) float64 {
 	if s == "" {
-		return ""
+		return 0
 	}
-	var spNum int64
-	u := make([]rune, 0)
-	for _, c := range s {
-		if !unicode.IsDigit(c) {
-			u = append(u, c)
+
+	spNum := float64(0)
+	number := make([]rune, 0)
+	runit := make([]rune, 0)
+
+	for _, r := range s {
+		if unicode.IsDigit(r) || r == '.' || r == '-' {
+			number = append(number, r)
 		} else {
-			spNum = spNum*10 + int64(c-'0')
+			runit = append(runit, r)
 		}
 	}
-	unit := string(u)
+
+	sunit := strings.TrimSpace(string(runit))
+	spNum, _ = strconv.ParseFloat(strings.TrimSpace(string(number)), 64)
+
 	switch {
-	case unit == "K" || unit == "k" || unit == "KB" || unit == "kB" || unit == "KiB" || unit == "kiB":
+	case sunit == "K" || sunit == "k" || sunit == "KB" || sunit == "kB" || sunit == "KiB" || sunit == "kiB":
 		spNum = spNum * 1024
-	case unit == "M" || unit == "m" || unit == "MB" || unit == "mB" || unit == "MiB" || unit == "miB":
+	case sunit == "M" || sunit == "m" || sunit == "MB" || sunit == "mB" || sunit == "MiB" || sunit == "miB":
 		spNum = spNum * 1024 * 1024
-	case unit == "G" || unit == "g" || unit == "GB" || unit == "gB" || unit == "GiB" || unit == "giB":
+	case sunit == "G" || sunit == "g" || sunit == "GB" || sunit == "gB" || sunit == "GiB" || sunit == "giB":
 		spNum = spNum * 1024 * 1024 * 1024
-	case unit == "T" || unit == "t" || unit == "TB" || unit == "tB" || unit == "TiB" || unit == "tiB":
+	case sunit == "T" || sunit == "t" || sunit == "TB" || sunit == "tB" || sunit == "TiB" || sunit == "tiB":
 		spNum = spNum * 1024 * 1024 * 1024 * 1024
 	default:
 		spNum = spNum * 1024 * 1024
 	}
-	return fmt.Sprintf("%d", spNum)
+
+	return spNum
 }

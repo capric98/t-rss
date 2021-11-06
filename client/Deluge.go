@@ -13,7 +13,6 @@ import (
 	"net"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/gdm85/go-rencode"
 )
@@ -404,6 +403,7 @@ func convertInt(i interface{}) int {
 }
 
 func parseSpeed(v interface{}) float32 {
+	// I don't know why I use float32 here but so be it.
 	if v == nil {
 		return -1
 	}
@@ -411,25 +411,7 @@ func parseSpeed(v interface{}) float32 {
 	case int:
 		return float32(v)
 	case string:
-		var spNum float32
-		u := make([]rune, 0)
-		for _, c := range v {
-			if !unicode.IsDigit(c) {
-				u = append(u, c)
-			} else {
-				spNum = spNum*10 + float32(c-'0')
-			}
-		}
-		unit := string(u)
-		switch {
-		case unit == "K" || unit == "k" || unit == "KB" || unit == "kB" || unit == "KiB" || unit == "kiB":
-			spNum = spNum * 1024
-		case unit == "M" || unit == "m" || unit == "MB" || unit == "mB" || unit == "MiB" || unit == "miB":
-			spNum = spNum * 1024 * 1024
-		case unit == "G" || unit == "g" || unit == "GB" || unit == "gB" || unit == "GiB" || unit == "giB":
-			spNum = spNum * 1024 * 1024 * 1024
-		}
-		return spNum
+		return float32(UConvert(v))
 	default:
 		return -1
 	}
