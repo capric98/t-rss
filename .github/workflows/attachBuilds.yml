@@ -18,6 +18,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
+          /usr/local/go/bin/go version
           export GOOS=linux
           export GOARCH=arm
           /usr/local/go/bin/go build -o t-rss cmd/main.go
