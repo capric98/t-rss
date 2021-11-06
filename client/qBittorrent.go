@@ -136,7 +136,7 @@ func (c *QBType) call(data []byte, filename string) error {
 	for _, v := range qBparalist {
 		if c.settings[v] != "" {
 			if w.WriteField(v, c.settings[v]) != nil {
-				return fmt.Errorf("Failed to write field %s", v)
+				return fmt.Errorf("failed to write field %s", v)
 			}
 		}
 	}

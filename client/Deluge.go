@@ -53,17 +53,17 @@ var (
 	//https://github.com/deluge-torrent/deluge/blob/4b29436cd5eabf9af271f3fa6250cd7c91cdbc9d/deluge/core/torrent.py#L133
 
 	// ErrExpectDHeader :)
-	ErrExpectDHeader = errors.New("Expected D as first byte in reply")
+	ErrExpectDHeader = errors.New("expected D as first byte in reply")
 	// ErrExpectPVHeader :)
-	ErrExpectPVHeader = errors.New("Expected protocal version as first byte in reply")
+	ErrExpectPVHeader = errors.New("expected protocal version as first byte in reply")
 	// ErrRespIncomplete :)
-	ErrRespIncomplete = errors.New("Expected a longer response than actually got")
+	ErrRespIncomplete = errors.New("expected a longer response than actually got")
 	// ErrUnknownResp :)
-	ErrUnknownResp = errors.New("Unknown RPC response")
+	ErrUnknownResp = errors.New("unknown RPC response")
 	// ErrRPCEvent :)
-	ErrRPCEvent = errors.New("Unexpected RPC Event message")
+	ErrRPCEvent = errors.New("unexpected RPC Event message")
 	// ErrAddFail :)
-	ErrAddFail = errors.New("Failed to add torrent file after 3 tries")
+	ErrAddFail = errors.New("failed to add torrent file after 3 tries")
 )
 
 // Add :)
