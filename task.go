@@ -116,7 +116,6 @@ func (w *worker) loop() {
 				for _, f := range w.filters {
 					if e := f.Check(&items[k]); e != nil {
 						flag = false
-						reject++
 						log.Info("(reject) ", e)
 						break
 					}
@@ -125,6 +124,14 @@ func (w *worker) loop() {
 					accept++
 					log.Info("(accept) ", items[k].Title)
 					passed = append(passed, items[k])
+				} else {
+					reject++
+					hf, err := os.Create(historyPath)
+					if err != nil {
+						log.Warn("create history file: ", err)
+					} else {
+						hf.Close()
+					}
 				}
 			}
 			w.logger().Info("accepted ", accept, " item(s), rejected ", reject, " item(s).")
