@@ -13,7 +13,6 @@ jobs:
       - name: Set up Go LATEST
         run: |
           curl -fsSL https://raw.githubusercontent.com/capric98/myenv/master/Go/Linux/install.sh | bash
-          source ~/.bashrc
 
       - name: Build
         env:
@@ -21,19 +20,27 @@ jobs:
         run: |
           export GOOS=linux
           export GOARCH=arm
-          go build -o t-rss cmd/main.go
+          /usr/local/go/bin/go build -o t-rss cmd/main.go
           zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
           export GOOS=linux
           export GOARCH=arm64
-          go build -o t-rss cmd/main.go
+          /usr/local/go/bin/go build -o t-rss cmd/main.go
           zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
           export GOOS=linux
           export GOARCH=amd64
-          go build -o t-rss cmd/main.go
+          /usr/local/go/bin/go build -o t-rss cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
+          export GOOS=darwin
+          export GOARCH=amd64
+          /usr/local/go/bin/go build -o t-rss cmd/main.go
+          zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
+          export GOOS=darwin
+          export GOARCH=arm64
+          /usr/local/go/bin/go build -o t-rss cmd/main.go
           zip t-rss_${GOOS}_${GOARCH}.zip t-rss && rm -rf t-rss
           export GOOS=windows
           export GOARCH=amd64
-          go build -o t-rss.exe cmd/main.go
+          /usr/local/go/bin/go build -o t-rss.exe cmd/main.go
           zip t-rss_${GOOS}_${GOARCH}.zip t-rss.exe && rm -rf t-rss.exe
 
       - uses: shogo82148/actions-upload-release-asset@v1
